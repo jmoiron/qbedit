@@ -9,13 +9,21 @@ $(function() {
     if(link){ link.textContent = (theme === 'dark') ? 'Light mode' : 'Dark mode'; }
   }
   (function(){
-    var th = localStorage.getItem('theme') || 'light';
+    // Determine theme: query param overrides localStorage
+    var params = new URLSearchParams(window.location.search);
+    var qDark = params.get('dark');
+    var th;
+    if (qDark !== null) {
+      th = (qDark === '1' || qDark === 'true' || qDark === 'yes' || qDark === 'on') ? 'dark' : 'light';
+    } else {
+      th = localStorage.getItem('theme') || 'light';
+    }
     applyTheme(th);
     var link = document.getElementById('toggle-theme');
     if(link){
       link.addEventListener('click', function(e){
         e.preventDefault();
-        var cur = localStorage.getItem('theme') || 'light';
+        var cur = (localStorage.getItem('theme') || 'light');
         var next = cur === 'dark' ? 'light' : 'dark';
         localStorage.setItem('theme', next);
         document.cookie = 'theme=' + next + '; Path=/; Max-Age=31536000; SameSite=Lax';

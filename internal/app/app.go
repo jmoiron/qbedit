@@ -250,8 +250,15 @@ func (a *App) render(w http.ResponseWriter, name string, data any) {
 
 // baseData returns common template data to keep the sidebar consistent.
 func (a *App) baseData(r *http.Request, title string) map[string]any {
+    // Dark mode detection precedence:
+    // 1) Explicit query param ?dark=true forces dark for this render
+    // 2) Fallback to cookie set by client toggle
     themeDark := false
-    if c, err := r.Cookie("theme"); err == nil && c != nil && c.Value == "dark" {
+    if v := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("dark"))); v != "" {
+        if v == "1" || v == "true" || v == "t" || v == "yes" || v == "on" {
+            themeDark = true
+        }
+    } else if c, err := r.Cookie("theme"); err == nil && c != nil && c.Value == "dark" {
         themeDark = true
     }
     return map[string]any{

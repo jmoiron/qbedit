@@ -8,21 +8,19 @@ type SNBT Peg {
 Start <- _ Value _ !.
 
 # Values
-Value <- Compound / List / String / Boolean / Decimal / FloatS / Long / Short / Unquoted
+Value <- Compound / List / String / Boolean / Number
 
 # Compound: { Pair* }
-Compound <- LBRACE { p.BeginCompound() } (PairSep? Pair (PairSep Pair)*)? (EOL+ WSP)? RBRACE
-
-# Pair: Key ':' Value (assign after value)
+Compound <- LBRACE { p.BeginCompound() } (_ Pair (Sep Pair)*)? _ RBRACE
 Pair <- Key COLON Value { p.PairSet() }
-
-# List: '[' (Value ...)* ']'
-List <- LBRACKET { p.BeginList() } (ListSep? ListItem (ListSep ListItem)*)? (EOL+ WSP)? RBRACKET
-ListItem <- WSP Value { p.ListAppend() }
 
 # Key: identifier or quoted string (capture then SetKey)
 # Allow dots in unquoted identifiers (e.g., keys like foo.bar)
-Key <- (< [A-Za-z_] [A-Za-z0-9_\-.]* > / DQUOTE <StringInner> DQUOTE) { p.SetKey(text) }
+Key <- (< [A-Za-z_] [A-Za-z0-9_\-.]* > / DQUOTE <StringInner> DQUOTE) WSP { p.SetKey(text) }
+
+# List: '[' x, y, ... ']'
+List <- LBRACKET { p.BeginList() } (_ ListItem (Sep ListItem)*)? _ RBRACKET
+ListItem <- Value { p.ListAppend() }
 
 # String: double quoted with escapes
 String <- DQUOTE <StringInner> DQUOTE WSP { p.PushString(text) }
@@ -31,17 +29,21 @@ Escape <- '\\' [\\"/bfnrt] / Unicode
 Unicode <- '\\' 'u' Hex Hex Hex Hex
 Hex <- [0-9A-Fa-f]
 
-# Unquoted tokens (numbers or id-like)
-Unquoted <- < (!('}' / ']' / ',' / ':' / ' ' / '\n' / '\r' / '\t') .)+ > WSP { p.PushUnquoted(text) }
-
 # Decimal numbers with 'd' or 'D' suffix preserved
-Decimal <- < [+-]? [0-9]+ ('.' [0-9]+)? [dD] > WSP { p.PushDecimal(text) }
-FloatS <- < [+-]? [0-9]+ ('.' [0-9]+)? [fF] > WSP { p.PushFloat(text) }
-Long <- < [+-]? [0-9]+ [lL] > WSP { p.PushLong(text) }
-Short <- < [+-]? [0-9]+ [sS] > WSP { p.PushShort(text) }
+Number  <- Decimal / FloatS / Long / Short / Integer
+Decimal <- < Sign? Digits ('.' Digits)? [dD] > WSP { p.PushDecimal(text) }
+FloatS  <- < Sign? Digits ('.' Digits)? [fF] > WSP { p.PushFloat(text) }
+Long    <- < Sign? Digits [lL] > WSP { p.PushLong(text) }
+Short   <- < Sign? Digits [sS] > WSP { p.PushShort(text) }
+Integer <- < Sign? Digits > WSP { p.PushNumber(text) }
+
+Digits <- [0-9]+
+Sign <- ('+' / '-')
 
 # Boolean literals
-Boolean <- ("true" { p.PushBool(true) } / "false" { p.PushBool(false) }) WSP
+Boolean <- True / False
+False <- ("false" / "0b") WSP { p.PushBool(false)}
+True  <- ("true" / "1b") WSP { p.PushBool(true) }
 
 # Punctuators with trailing space
 LBRACE <- '{' WSP
@@ -53,12 +55,12 @@ COMMA <- ','
 DQUOTE <- '"'
 
 # Separators: optional comma, whitespace/newlines
-PairSep <- (WSP? (COMMA WSP / (EOL+ WSP &Key)))
-ListSep <- (WSP? (COMMA WSP / (EOL+ WSP &Value)))
+Sep <- COMMA _ / ENDL
 
 # Whitespace and comments
 _ <- (WS / EOL / Comment)*
 WS <- ' ' / '\t'
+ENDL <- (WSP EOL WSP)+
 WSP <- WS*
 EOL <- '\r' '\n' / '\r' / '\n'
 Comment <- ('#' / '//') (!EOL .)* EOL

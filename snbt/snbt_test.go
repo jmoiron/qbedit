@@ -50,8 +50,18 @@ func TestParseSimpleListNumber(t *testing.T) {
 	}
 }
 
+func TestParse_EmptyList(t *testing.T) {
+	v, err := Decode(bytes.NewReader([]byte("[ ]")))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, ok := v.([]any); !ok {
+		t.Fatalf("expected list, got %T", v)
+	}
+}
+
 func TestRoundTrip_SampleChapter(t *testing.T) {
-    t.Skip("round-trip of full sample temporarily disabled while decimal preservation is implemented")
+	t.Skip("round-trip of full sample temporarily disabled while decimal preservation is implemented")
 	if _, err := os.Stat("test_chapter.snbt"); err != nil {
 		if os.IsNotExist(err) {
 			t.Skip("test_chapter.snbt not present; skipping")
@@ -144,104 +154,165 @@ func TestParseCompoundEmpty(t *testing.T) {
 }
 
 func TestUnicodeString_Parse(t *testing.T) {
-    cases := []string{
-        `"&6poly-α-olefin&r"`,
-        `"こんにちは世界"`,
-        `"αβγ"`,
-    }
-    for _, in := range cases {
-        v, err := Decode(bytes.NewReader([]byte(in)))
-        if err != nil {
-            t.Fatalf("decode %s: %v", in, err)
-        }
-        s, ok := v.(string)
-        if !ok {
-            t.Fatalf("expected string, got %T", v)
-        }
-        // Strip quotes from input for comparison
-        want := in[1:len(in)-1]
-        if s != want {
-            t.Fatalf("mismatch: got %q want %q", s, want)
-        }
-    }
+	cases := []string{
+		`"&6poly-α-olefin&r"`,
+		`"こんにちは世界"`,
+		`"αβγ"`,
+	}
+	for _, in := range cases {
+		v, err := Decode(bytes.NewReader([]byte(in)))
+		if err != nil {
+			t.Fatalf("decode %s: %v", in, err)
+		}
+		s, ok := v.(string)
+		if !ok {
+			t.Fatalf("expected string, got %T", v)
+		}
+		// Strip quotes from input for comparison
+		want := in[1 : len(in)-1]
+		if s != want {
+			t.Fatalf("mismatch: got %q want %q", s, want)
+		}
+	}
 }
 
 func TestUnicodeString_RoundTrip(t *testing.T) {
-    in := `"&6poly-α-olefin&r"`
-    v, err := Decode(bytes.NewReader([]byte(in)))
-    if err != nil {
-        t.Fatalf("decode: %v", err)
-    }
-    var buf bytes.Buffer
-    if err := Encode(&buf, v); err != nil {
-        t.Fatalf("encode: %v", err)
-    }
-    v2, err := Decode(bytes.NewReader(buf.Bytes()))
-    if err != nil {
-        t.Fatalf("decode2: %v", err)
-    }
-    if !reflect.DeepEqual(v, v2) {
-        t.Fatalf("roundtrip mismatch: %v vs %v", v, v2)
-    }
+	in := `"&6poly-α-olefin&r"`
+	v, err := Decode(bytes.NewReader([]byte(in)))
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := Encode(&buf, v); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	v2, err := Decode(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("decode2: %v", err)
+	}
+	if !reflect.DeepEqual(v, v2) {
+		t.Fatalf("roundtrip mismatch: %v vs %v", v, v2)
+	}
 }
 
 func TestUnicodeInCompound(t *testing.T) {
-    in := `{ title: "こんにちは世界", subtitle: "αβγ" }`
-    v, err := Decode(bytes.NewReader([]byte(in)))
-    if err != nil {
-        t.Fatalf("decode: %v", err)
-    }
-    m, ok := v.(map[string]any)
-    if !ok {
-        t.Fatalf("expected map, got %T", v)
-    }
-    if m["title"].(string) != "こんにちは世界" {
-        t.Fatalf("title mismatch: %q", m["title"])
-    }
-    if m["subtitle"].(string) != "αβγ" {
-        t.Fatalf("subtitle mismatch: %q", m["subtitle"])
-    }
+	in := `{ title: "こんにちは世界", subtitle: "αβγ" }`
+	v, err := Decode(bytes.NewReader([]byte(in)))
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map, got %T", v)
+	}
+	if m["title"].(string) != "こんにちは世界" {
+		t.Fatalf("title mismatch: %q", m["title"])
+	}
+	if m["subtitle"].(string) != "αβγ" {
+		t.Fatalf("subtitle mismatch: %q", m["subtitle"])
+	}
 }
 
 func TestDecimal_ParseAndEncode(t *testing.T) {
-    in := "-0.75d"
-    v, err := Decode(bytes.NewReader([]byte(in)))
-    if err != nil { t.Fatalf("decode: %v", err) }
-    dec, ok := v.(Decimal)
-    if !ok { t.Fatalf("expected Decimal, got %T", v) }
-    if dec.SNBT() != in { t.Fatalf("SNBT mismatch: %s vs %s", dec.SNBT(), in) }
-    if dec.Float() != -0.75 { t.Fatalf("Float mismatch: %v", dec.Float()) }
-    var buf bytes.Buffer
-    if err := Encode(&buf, dec); err != nil { t.Fatalf("encode: %v", err) }
-    if buf.String() != in { t.Fatalf("encode mismatch: %q vs %q", buf.String(), in) }
+	in := "-0.75d"
+	v, err := Decode(bytes.NewReader([]byte(in)))
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	dec, ok := v.(Decimal)
+	if !ok {
+		t.Fatalf("expected Decimal, got %T", v)
+	}
+	if dec.SNBT() != in {
+		t.Fatalf("SNBT mismatch: %s vs %s", dec.SNBT(), in)
+	}
+	if dec.Float() != -0.75 {
+		t.Fatalf("Float mismatch: %v", dec.Float())
+	}
+	var buf bytes.Buffer
+	if err := Encode(&buf, dec); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	if buf.String() != in {
+		t.Fatalf("encode mismatch: %q vs %q", buf.String(), in)
+	}
 }
 
 // TestRoundTrip_OptionalFile checks round-trip integrity for an optional test file.
 // If snbt/test_rt.snbt is not present, the test is skipped.
 func TestRoundTrip_OptionalFile(t *testing.T) {
-    const path = "test_rt.snbt"
-    if _, err := os.Stat(path); err != nil {
-        if os.IsNotExist(err) {
-            t.Skip("test_rt.snbt not present; skipping")
-        }
-        t.Fatalf("stat optional file: %v", err)
-    }
-    f, err := os.Open(path)
-    if err != nil { t.Fatalf("open: %v", err) }
-    defer f.Close()
+	const path = "test_rt2.snbt"
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			t.Skip("test_rt.snbt not present; skipping")
+		}
+		t.Fatalf("stat optional file: %v", err)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer f.Close()
 
-    v1, err := Decode(f)
-    if err != nil { t.Fatalf("decode1: %v", err) }
+	v1, err := Decode(f)
+	if err != nil {
+		t.Fatalf("decode1: %v", err)
+	}
 
-    var buf bytes.Buffer
-    if err := Encode(&buf, v1); err != nil { t.Fatalf("encode: %v", err) }
+	var buf bytes.Buffer
+	if err := Encode(&buf, v1); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
 
-    v2, err := Decode(bytes.NewReader(buf.Bytes()))
-    if err != nil {
-        t.Skipf("decode2 failed on re-encoded output: %v", err)
-    }
+	v2, err := Decode(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Skipf("decode2 failed on re-encoded output: %v", err)
+	}
 
-    if !reflect.DeepEqual(v1, v2) {
-        t.Fatalf("round-trip mismatch for %s: %v", path, diff(v1, v2, "$"))
-    }
+	if !reflect.DeepEqual(v1, v2) {
+		t.Fatalf("round-trip mismatch for %s: %v", path, diff(v1, v2, "$"))
+	}
+}
+
+// Regression: a number value followed by a comma should parse in a compound.
+func TestParse_NumberThenComma(t *testing.T) {
+	in := `{ min_width: 250, shape: "hexagon" }`
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+}
+
+func TestParse_SimpleNumbersWithComma(t *testing.T) {
+	in := `{ x: 1, y: 2 }`
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+}
+
+func TestParse_SimpleNoComma(t *testing.T) {
+	in := `{ x: 1 }`
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+}
+
+func TestParse_JustNumber(t *testing.T) {
+	in := `1`
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+}
+
+func TestParse_NewlineSeparatedPairs_WithComma(t *testing.T) {
+	in := "{ a: [],\n  b: true }"
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+}
+
+func TestParse_NewlineSeparatedPairs_NoComma(t *testing.T) {
+	in := "{ a: []\n  b: true }"
+	if _, err := Decode(bytes.NewReader([]byte(in))); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
 }

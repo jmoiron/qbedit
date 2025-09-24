@@ -1,14 +1,14 @@
 package snbt
 
 import (
-    "strconv"
-    "strings"
+	"strconv"
+	"strings"
 )
 
 // Builder is embedded into the generated PEG parser and accumulates results.
 type Builder struct {
-    stack []any
-    keys  []string
+	stack []any
+	keys  []string
 }
 
 // helper stack ops
@@ -65,15 +65,6 @@ func (b *Builder) PushString(s string) {
 }
 
 func (b *Builder) PushNumber(s string) {
-	// Strip type suffix if present
-	if len(s) > 0 {
-		last := s[len(s)-1]
-		switch last {
-		case 'b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D':
-			s = s[:len(s)-1]
-		}
-	}
-	// Choose int64 vs float64
 	if containsDotOrExp(s) {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			b.push(f)
@@ -91,96 +82,85 @@ func (b *Builder) PushNumber(s string) {
 
 func (b *Builder) PushBool(v bool) { b.push(v) }
 
-// PushUnquoted parses an unquoted token. It attempts to parse numbers with
-// optional SNBT suffixes; otherwise it keeps the raw string.
-func (b *Builder) PushUnquoted(s string) {
-	if s == "" {
-		b.push("")
-		return
-	}
-	// try boolean just in case grammar didn't catch
-	if s == "true" {
-		b.push(true)
-		return
-	}
-	if s == "false" {
-		b.push(false)
-		return
-	}
-	// numeric with suffix
-	suf := byte(0)
-	if n := len(s); n > 0 {
-		c := s[n-1]
-		switch c {
-		case 'b', 'B', 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D':
-			suf = c
-			s = s[:n-1]
-		}
-	}
-	if containsDotOrExp(s) || suf == 'f' || suf == 'F' || suf == 'd' || suf == 'D' {
-		if f, err := strconv.ParseFloat(s, 64); err == nil {
-			b.push(f)
-			return
-		}
-	} else {
-		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-			b.push(i)
-			return
-		}
-	}
-	// fallback: raw string
-    b.push(s)
-}
-
 // PushDecimal parses a decimal with 'd' suffix preserving parts.
 func (b *Builder) PushDecimal(s string) {
-    if s == "" { return }
-    sign := 1
-    if s[0] == '-' { sign = -1; s = s[1:] } else if s[0] == '+' { s = s[1:] }
-    // strip suffix (last rune)
-    if n := len(s); n > 0 { s = s[:n-1] }
-    intPart := s
-    fracPart := ""
-    if i := strings.IndexByte(s, '.'); i >= 0 {
-        intPart = s[:i]
-        fracPart = s[i+1:]
-    }
-    b.push(Decimal{Sign: sign, Int: intPart, Frac: fracPart, Suffix: 'd'})
+	if s == "" {
+		return
+	}
+	sign := 1
+	if s[0] == '-' {
+		sign = -1
+		s = s[1:]
+	} else if s[0] == '+' {
+		s = s[1:]
+	}
+	// strip suffix (last rune)
+	if n := len(s); n > 0 {
+		s = s[:n-1]
+	}
+	intPart := s
+	fracPart := ""
+	if i := strings.IndexByte(s, '.'); i >= 0 {
+		intPart = s[:i]
+		fracPart = s[i+1:]
+	}
+	b.push(Decimal{Sign: sign, Int: intPart, Frac: fracPart, Suffix: 'd'})
 }
 
 // PushShort parses a short with 's' suffix.
 func (b *Builder) PushShort(s string) {
-    if s == "" { return }
-    sign := 1
-    if s[0] == '-' { sign = -1; s = s[1:] } else if s[0] == '+' { s = s[1:] }
-    // strip suffix
-    digits := s[:len(s)-1]
-    b.push(Short{Sign: sign, Digits: digits, Suffix: 's'})
+	if s == "" {
+		return
+	}
+	sign := 1
+	if s[0] == '-' {
+		sign = -1
+		s = s[1:]
+	} else if s[0] == '+' {
+		s = s[1:]
+	}
+	// strip suffix
+	digits := s[:len(s)-1]
+	b.push(Short{Sign: sign, Digits: digits, Suffix: 's'})
 }
 
 // PushLong parses a long with 'l' suffix.
 func (b *Builder) PushLong(s string) {
-    if s == "" { return }
-    sign := 1
-    if s[0] == '-' { sign = -1; s = s[1:] } else if s[0] == '+' { s = s[1:] }
-    digits := s[:len(s)-1]
-    b.push(Long{Sign: sign, Digits: digits, Suffix: 'l'})
+	if s == "" {
+		return
+	}
+	sign := 1
+	if s[0] == '-' {
+		sign = -1
+		s = s[1:]
+	} else if s[0] == '+' {
+		s = s[1:]
+	}
+	digits := s[:len(s)-1]
+	b.push(Long{Sign: sign, Digits: digits, Suffix: 'l'})
 }
 
 // PushFloat parses a float with 'f' suffix preserving parts.
 func (b *Builder) PushFloat(s string) {
-    if s == "" { return }
-    sign := 1
-    if s[0] == '-' { sign = -1; s = s[1:] } else if s[0] == '+' { s = s[1:] }
-    // strip suffix
-    s = s[:len(s)-1]
-    intPart := s
-    fracPart := ""
-    if i := strings.IndexByte(s, '.'); i >= 0 {
-        intPart = s[:i]
-        fracPart = s[i+1:]
-    }
-    b.push(FloatNum{Sign: sign, Int: intPart, Frac: fracPart, Suffix: 'f'})
+	if s == "" {
+		return
+	}
+	sign := 1
+	if s[0] == '-' {
+		sign = -1
+		s = s[1:]
+	} else if s[0] == '+' {
+		s = s[1:]
+	}
+	// strip suffix
+	s = s[:len(s)-1]
+	intPart := s
+	fracPart := ""
+	if i := strings.IndexByte(s, '.'); i >= 0 {
+		intPart = s[:i]
+		fracPart = s[i+1:]
+	}
+	b.push(FloatNum{Sign: sign, Int: intPart, Frac: fracPart, Suffix: 'f'})
 }
 
 func containsDotOrExp(s string) bool {

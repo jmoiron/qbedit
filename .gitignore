@@ -1,0 +1,10 @@
+.cache*
+.gocache*
+.gopath*
+
+# binary
+qbedit
+
+# test data
+ftbquests/*
+
