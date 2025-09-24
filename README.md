@@ -27,6 +27,8 @@ qbedit --addr 0.0.0.0:8222 /path/to/ftbquests
 - Use the sidebar to navigate chapters and quests
 - Dark mode toggle is in the sidebar footer
 
+![v0-dark-mode](https://github.com/user-attachments/assets/ca0e15de-5a15-406d-ac70-3d305317eaef)
+
 Flags:
 - `--addr` (default `0.0.0.0:8222`) — listen address
 - `--mcv`  (default `1.20.1`)      — Minecraft version tag
