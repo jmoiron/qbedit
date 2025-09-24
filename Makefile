@@ -22,4 +22,4 @@ fmt:
 
 # Dev run (restarts automatically when changing files)
 run:
-	@reflex -r '\.(go|css|js|gohtml)$' -v -s -- sh -c 'make && ./qbedit ./ftbquests'
+	@reflex -r '\.(go|css|js|gohtml)$$' -v -s -- sh -c 'make && ./qbedit ./ftbquests'
