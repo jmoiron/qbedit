@@ -22,6 +22,8 @@ html, body { height: 100%; }
 body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
 a { color: var(--link); text-decoration: none; cursor: pointer; }
 a:hover { text-decoration: underline; }
+input[type=text], textarea { background: var(--bg); color: var(--text); box-sizing: border-box; padding: 5px; border: 1px dashed var(--border); }
+button[type=submit], select { background: var(--selected-bg); color: var(--link); border: 2px solid var(--border); padding: 5px; }
 
 .wrap { display: flex; height: 100vh; }
 .side { width: 300px; border-right: 1px solid var(--border); overflow: auto; padding: 12px; }
@@ -48,7 +50,15 @@ a:hover { text-decoration: underline; }
 /* Quest editor */
 .edit-wrap { display: flex; gap: 16px; }
 .edit-left, .edit-right { flex: 1 1 50%; }
-.edit-left input[type=text], .edit-left textarea { background: var(--bg); color: var(--text); width: 100%; box-sizing: border-box; padding: 5px; border: 1px dashed var(--border); }
+.edit-left input[type=text], .edit-left textarea { width: 100%; }
 .edit-left textarea { min-height: 240px; font-family: monospace; }
 .label { font-size: 12px; color: var(--muted); margin: 6px 0; display: block; }
 .save { background: var(--selected-bg); color: var(--link); border: 2px solid var(--border); padding: 5px; }
+
+/* Batch editor */
+.batch-form input[type=text] { width: 30em; }
+/* Inline save status for batch edit */
+.save-status { font-size: 12px; }
+.save-status.saving { color: var(--muted); }
+.save-status.ok { color: #2e8b57; }
+.save-status.fail { color: #c0392b; }

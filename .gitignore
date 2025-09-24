@@ -1,10 +1,12 @@
 .cache*
 .gocache*
 .gopath*
+.vscode/
 
 # binary
 qbedit
 
 # test data
 ftbquests/*
+
 

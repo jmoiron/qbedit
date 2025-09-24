@@ -1,18 +1,18 @@
 package snbt
 
 import (
-    "errors"
-    "fmt"
-    "io"
-    "reflect"
-    "sort"
-    "strconv"
-    "unicode/utf8"
+	"errors"
+	"fmt"
+	"io"
+	"reflect"
+	"sort"
+	"strconv"
+	"unicode/utf8"
 )
 
 // SelfEncoder can render itself to SNBT.
 type SelfEncoder interface {
-    SNBT() string
+	SNBT() string
 }
 
 // Encode encodes a generic Value back to SNBT bytes.
@@ -52,17 +52,17 @@ func encodeValue(w io.Writer, v any) error {
 	case float64:
 		encodeFloat(w, x)
 		return nil
-    default:
-        if se, ok := v.(SelfEncoder); ok {
-            io.WriteString(w, se.SNBT())
-            return nil
-        }
-        rv := reflect.ValueOf(v)
-        switch rv.Kind() {
-        case reflect.Int8, reflect.Int16, reflect.Int32:
-            io.WriteString(w, strconv.FormatInt(rv.Int(), 10))
-            return nil
-        case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+	default:
+		if se, ok := v.(SelfEncoder); ok {
+			io.WriteString(w, se.SNBT())
+			return nil
+		}
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Int8, reflect.Int16, reflect.Int32:
+			io.WriteString(w, strconv.FormatInt(rv.Int(), 10))
+			return nil
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 			io.WriteString(w, strconv.FormatUint(rv.Uint(), 10))
 			return nil
 		case reflect.Float32, reflect.Float64:
@@ -176,6 +176,7 @@ func encodeString(w io.Writer, s string) {
 func encodeFloat(w io.Writer, f float64) {
 	// Use 'g' for compact form, but ensure a decimal point exists
 	s := strconv.FormatFloat(f, 'g', -1, 64)
+
 	hasDot := false
 	for i := 0; i < len(s); i++ {
 		if s[i] == '.' || s[i] == 'e' || s[i] == 'E' {

@@ -22,8 +22,28 @@
           <a class="toggle-all" data-action="collapse-all">[-]</a>
         </div>
       </div>
-      <div class="chapters">
-        {{ if .Top }}
+  <div class="chapters">
+        {{ if .BatchSidebar }}
+          {{ range .BatchSidebar }}
+            <div class="group">
+              <div class="group-head"><span class="group-title">{{ mc .Title }}</span></div>
+              <ul class="group-list" style="display:block;">
+                {{ range .Chapters }}
+                  <li>
+                    <div class="chapter-title">{{ mc .Title }}</div>
+                    <ul>
+                      {{ range .Quests }}
+                        <li><a href="#q-{{ .ID }}">{{ mc .Title }}</a></li>
+                      {{ end }}
+                    </ul>
+                  </li>
+                {{ end }}
+              </ul>
+            </div>
+          {{ else }}
+            <div class="muted">No results</div>
+          {{ end }}
+        {{ else if .Top }}
           {{ range .Top }}
             {{ if eq .Kind "group" }}
               <div class="group" data-group="{{ .Group.ID }}">
@@ -53,6 +73,9 @@
       <div class="muted">MC {{ .MCVersion }}</div>
       <div class="muted" style="margin-top:8px;">Chapters: {{ .Parsed }} parsed{{ if gt .Failed 0 }}, <a href="/errors">{{ .Failed }} failed</a>{{ else }}, 0 failed{{ end }}</div>
       <div class="muted" style="margin-top:8px;">Theme: <a id="toggle-theme">Dark mode</a></div>
+      {{ if .BatchSidebar }}
+        <div class="muted" style="margin-top:8px;"><a href="/batch/">← Back to Batch search</a></div>
+      {{ end }}
     </aside>
     <main class="main">
 {{ end }}
@@ -68,5 +91,6 @@
   {{ template "layout_head" . }}
   <h1>qbedit</h1>
   <p>Select a chapter from the left to begin.</p>
+  <p class="muted">Or try the <a href="/batch/">Batch Editor</a> for search and multi‑quest editing.</p>
   {{ template "layout_foot" . }}
 {{ end }}

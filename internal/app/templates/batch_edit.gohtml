@@ -1,0 +1,91 @@
+{{ define "batch_edit.gohtml" }}
+  {{ template "layout_head" . }}
+  {{ $qv := .Form }}
+  <h1><a href="/batch/?cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}&n={{ .BatchPerPage }}">Batch Editor</a></h1>
+  {{ $total := .BatchTotal }}
+  {{ $pp := .BatchPerPage }}
+  {{ $page := .BatchPage }}
+  {{ if gt $total 0 }}
+    <div class="muted" style="margin-bottom:8px;">Showing {{ mul (add $page -1) $pp | add 1 }}–{{ min (mul $page $pp) $total }} of {{ $total }}</div>
+  {{ end }}
+  {{ range .BatchMatches }}
+    <div class="quest-edit" id="q-{{ .Quest.ID }}">
+      <h3>{{ mc .Chapter.Title }} <span class="muted">/</span> {{ mc .Quest.GetTitle }}</h3>
+      <div class="edit-wrap">
+        <div class="edit-left">
+          <form method="POST" action="/chapter/{{ .Chapter.Name }}/{{ .Quest.ID }}/save" class="quest-form">
+            <label class="label" for="bt-{{ .Quest.ID }}">Title</label>
+            <input id="bt-{{ .Quest.ID }}" name="title" type="text" value="{{ .Quest.Title }}" />
+            <label class="label" for="bs-{{ .Quest.ID }}">Subtitle</label>
+            <input id="bs-{{ .Quest.ID }}" name="subtitle" type="text" value="{{ .Quest.Subtitle }}" />
+            <label class="label" for="bd-{{ .Quest.ID }}">Description</label>
+            <textarea id="bd-{{ .Quest.ID }}" name="description">{{ .Quest.Description }}</textarea>
+            <div class="actions" style="margin-top:8px;">
+              <button type="submit" class="save">Save</button>
+              <span class="save-status muted" style="margin-left:8px;"></span>
+            </div>
+          </form>
+        </div>
+        <div class="edit-right">
+          <div class="muted" style="margin-bottom:4px;">Live preview</div>
+          <div class="q-preview">
+            <h2 class="q-title" id="pv-title-{{ .Quest.ID }}"></h2>
+            <div class="q-subtitle muted" id="pv-sub-{{ .Quest.ID }}" style="margin-top:4px;"></div>
+            <div class="q-desc" id="pv-desc-{{ .Quest.ID }}" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function(){
+          function fmt(s){ return window.mcFormat ? window.mcFormat(s||'') : (s||''); }
+          function update(){
+            var t = $('#bt-{{ .Quest.ID }}').val() || '';
+            var s = $('#bs-{{ .Quest.ID }}').val() || '';
+            var d = $('#bd-{{ .Quest.ID }}').val() || '';
+            $('#pv-title-{{ .Quest.ID }}').html(fmt(t) || '<span class="muted">(untitled)</span>');
+            $('#pv-sub-{{ .Quest.ID }}').html(fmt(s));
+            $('#pv-desc-{{ .Quest.ID }}').html(String(d).split('\n').map(fmt).join('<br>'));
+          }
+          ['#bt-{{ .Quest.ID }}','#bs-{{ .Quest.ID }}','#bd-{{ .Quest.ID }}'].forEach(function(sel){
+            $(sel).on('input', update);
+          });
+          update();
+        })();
+      </script>
+    </div>
+  {{ else }}
+    <div class="muted">No results to display.</div>
+  {{ end }}
+  {{ if gt $total $pp }}
+    {{ $last := ceilDiv $total $pp }}
+    <div class="pagination">
+      {{ if gt $page 1 }}
+        <a class="page" href="/batch/edit?cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}&n={{ $pp }}&p={{ add $page -1 }}">Prev</a>
+      {{ end }}
+      <span class="muted">Page {{ $page }} of {{ $last }}</span>
+      {{ if lt $page $last }}
+        <a class="page" href="/batch/edit?cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}&n={{ $pp }}&p={{ add $page 1 }}">Next</a>
+      {{ end }}
+    </div>
+  {{ end }}
+  <script>
+    (function(){
+      function onSubmit(e){
+        e.preventDefault();
+        var $form = $(e.target);
+        var $root = $form.closest('.quest-edit');
+        var $status = $root.find('.save-status');
+        $status.text('Saving...').removeClass('ok fail').addClass('saving');
+        var fd = new FormData($form[0]);
+        fetch($form.attr('action'), { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }})
+          .then(function(r){ return r.json().catch(function(){ return { ok:false, error:'invalid response' }; }); })
+          .then(function(j){ $status.removeClass('saving'); if (j && j.ok) { $status.text('Saved').addClass('ok'); } else { $status.text('Failed').addClass('fail'); } })
+          .catch(function(){ $status.removeClass('saving').text('Failed').addClass('fail'); });
+      }
+      document.addEventListener('submit', function(e){
+        if(e.target && e.target.classList && e.target.classList.contains('quest-form')){ onSubmit(e); }
+      }, false);
+    })();
+  </script>
+  {{ template "layout_foot" . }}
+{{ end }}

@@ -43,33 +43,33 @@ func TestScanGroups(t *testing.T) {
 }
 
 func TestBuildTopItems_Interleave(t *testing.T) {
-    groups := []Group{
-        {ID: "G1", Title: "G1"},
-        {ID: "G2", Title: "G2"},
-        {ID: "G3", Title: "G3"},
-        {ID: "G4", Title: "G4"},
-    }
-    chapters := []Chapter{
-        {Name: "intro", Title: "Introduction", OrderIndex: 0},
-        {Name: "from_nothing", Title: "From Nothing", OrderIndex: 1},
-        {Name: "later", Title: "Later", OrderIndex: 3},
-    }
-    top := buildTopItems(groups, chapters)
-    got := make([]string, 0, len(top))
-    for _, ti := range top {
-        if ti.Kind == "chapter" {
-            got = append(got, "C:"+ti.Chapter.Title)
-        } else {
-            got = append(got, "G:"+ti.Group.Title)
-        }
-    }
-    want := []string{"C:Introduction", "C:From Nothing", "G:G1", "C:Later", "G:G2", "G:G3", "G:G4"}
-    if len(got) != len(want) {
-        t.Fatalf("len mismatch: got %d want %d (%v)", len(got), len(want), got)
-    }
-    for i := range want {
-        if got[i] != want[i] {
-            t.Fatalf("pos %d: got %q want %q (seq=%v)", i, got[i], want[i], got)
-        }
-    }
+	groups := []Group{
+		{ID: "G1", Title: "G1"},
+		{ID: "G2", Title: "G2"},
+		{ID: "G3", Title: "G3"},
+		{ID: "G4", Title: "G4"},
+	}
+	chapters := []Chapter{
+		{Name: "intro", Title: "Introduction", OrderIndex: 0},
+		{Name: "from_nothing", Title: "From Nothing", OrderIndex: 1},
+		{Name: "later", Title: "Later", OrderIndex: 3},
+	}
+	top := buildTopItems(groups, chapters)
+	got := make([]string, 0, len(top))
+	for _, ti := range top {
+		if ti.Kind == "chapter" {
+			got = append(got, "C:"+ti.Chapter.Title)
+		} else {
+			got = append(got, "G:"+ti.Group.Title)
+		}
+	}
+	want := []string{"C:Introduction", "C:From Nothing", "G:G1", "C:Later", "G:G2", "G:G3", "G:G4"}
+	if len(got) != len(want) {
+		t.Fatalf("len mismatch: got %d want %d (%v)", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("pos %d: got %q want %q (seq=%v)", i, got[i], want[i], got)
+		}
+	}
 }

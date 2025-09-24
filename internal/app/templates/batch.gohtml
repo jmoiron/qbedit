@@ -1,0 +1,44 @@
+{{ define "batch.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1>Batch Editor</h1>
+  {{ if .BatchMsg }}<div class="muted" style="margin-bottom:8px;">{{ .BatchMsg }}</div>{{ end }}
+  <form method="GET" action="/batch/" class="batch-form">
+    <div class="row">
+      <label class="label" for="cg">Chapter/Group</label>
+      <input type="text" id="cg" name="cg" list="cg-options" value="{{ index .Form "cg" }}" placeholder="Chapter or Group title" />
+      <datalist id="cg-options">
+        {{ range .CGOptions }}<option value="{{ . }}"></option>{{ end }}
+      </datalist>
+    </div>
+    <div class="row">
+      <label class="label" for="q">Search</label>
+      <input type="text" id="q" name="q" value="{{ index .Form "q" }}" placeholder="Search title/subtitle/description" />
+    </div>
+    <div class="row">
+      <label class="label">Filters</label>
+      <label><input type="checkbox" name="no_title" {{ if index .Form "no_title" }}checked{{ end }} /> No Title</label>
+      <label><input type="checkbox" name="no_subtitle" {{ if index .Form "no_subtitle" }}checked{{ end }} /> No Subtitle</label>
+      <label><input type="checkbox" name="no_desc" {{ if index .Form "no_desc" }}checked{{ end }} /> No Description</label>
+      <label><input type="checkbox" name="case" {{ if index .Form "case" }}checked{{ end }} /> Case sensitive</label>
+    </div>
+    <div class="row">
+      <label class="label" for="n">Per page</label>
+      <select id="n" name="n">
+        {{ $n := index .Form "n" }}
+        <option value="5" {{ if eq $n 5 }}selected{{ end }}>5</option>
+        <option value="10" {{ if eq $n 10 }}selected{{ end }}>10</option>
+        <option value="20" {{ if eq $n 20 }}selected{{ end }}>20</option>
+      </select>
+      <button type="submit" formaction="/batch/edit">Search</button>
+    </div>
+  </form>
+  {{/* Results are rendered on /batch/edit now */}}
+  <style>
+    .batch-flex { display:flex; gap:16px; }
+    .batch-side { width: 320px; }
+    .batch-main { flex:1; }
+    .batch-form .row { margin: 12px 0; display:block; }
+    /* results styles live on batch_edit */
+  </style>
+{{ template "layout_foot" . }}
+{{ end }}

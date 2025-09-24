@@ -1,11 +1,11 @@
 package app
 
 import (
-    "fmt"
-    "io"
-    "sort"
+	"fmt"
+	"io"
+	"sort"
 
-    "github.com/jmoiron/qbedit/snbt"
+	"github.com/jmoiron/qbedit/snbt"
 )
 
 // Quest represents a single quest entry within a Chapter.
@@ -20,98 +20,98 @@ import (
 // ItemTask, etc.) and decode into the appropriate type based on the
 // "type" field.
 type Quest struct {
-    Raw         any
-    ID          string
-    Title       string
-    Subtitle    string
-    Description string
+	Raw         any
+	ID          string
+	Title       string
+	Subtitle    string
+	Description string
 }
 
 // GetTitle returns the preferred display title for the quest.
 // - If Title is set, returns it.
 // - Otherwise inspects the first task; if it's an item task, returns the item id.
 func (q Quest) GetTitle() string {
-    if q.Title != "" {
-        return q.Title
-    }
-    // Inspect first task
-    m, ok := q.Raw.(map[string]any)
-    if !ok {
-        return ""
-    }
-    tasks, ok := m["tasks"].([]any)
-    if !ok || len(tasks) == 0 {
-        return ""
-    }
-    t0, ok := tasks[0].(map[string]any)
-    if !ok {
-        return ""
-    }
-    // Prefer item key
-    if v, ok := t0["item"]; ok {
-        if s := itemToString(v); s != "" {
-            return s
-        }
-    }
-    // Some tasks may use 'id' for item
-    if v, ok := t0["id"]; ok {
-        if s, ok2 := v.(string); ok2 {
-            return s
-        }
-    }
-    return ""
+	if q.Title != "" {
+		return q.Title
+	}
+	// Inspect first task
+	m, ok := q.Raw.(map[string]any)
+	if !ok {
+		return ""
+	}
+	tasks, ok := m["tasks"].([]any)
+	if !ok || len(tasks) == 0 {
+		return ""
+	}
+	t0, ok := tasks[0].(map[string]any)
+	if !ok {
+		return ""
+	}
+	// Prefer item key
+	if v, ok := t0["item"]; ok {
+		if s := itemToString(v); s != "" {
+			return s
+		}
+	}
+	// Some tasks may use 'id' for item
+	if v, ok := t0["id"]; ok {
+		if s, ok2 := v.(string); ok2 {
+			return s
+		}
+	}
+	return ""
 }
 
 func itemToString(v any) string {
-    switch x := v.(type) {
-    case string:
-        return x
-    case map[string]any:
-        if id, ok := x["id"].(string); ok {
-            return id
-        }
-        if it, ok := x["item"].(string); ok {
-            return it
-        }
-    }
-    return ""
+	switch x := v.(type) {
+	case string:
+		return x
+	case map[string]any:
+		if id, ok := x["id"].(string); ok {
+			return id
+		}
+		if it, ok := x["item"].(string); ok {
+			return it
+		}
+	}
+	return ""
 }
 
 // QuestFromRaw constructs a Quest from a generic SNBT-decoded value.
 func QuestFromRaw(raw any) Quest {
-    q := Quest{Raw: raw}
-    m, ok := raw.(map[string]any)
-    if !ok {
-        return q
-    }
-    if id, ok := m["id"].(string); ok {
-        q.ID = id
-    }
-    if t, ok := m["title"].(string); ok {
-        q.Title = t
-    }
-    if st, ok := m["subtitle"].(string); ok {
-        q.Subtitle = st
-    }
-    // Description may be a list of strings
-    if dl, ok := m["description"].([]any); ok {
-        parts := make([]string, 0, len(dl))
-        for _, v := range dl {
-            if s, ok := v.(string); ok {
-                parts = append(parts, s)
-            }
-        }
-        if len(parts) > 0 {
-            desc := parts[0]
-            for i := 1; i < len(parts); i++ {
-                desc += "\n" + parts[i]
-            }
-            q.Description = desc
-        }
-    } else if ds, ok := m["description"].(string); ok {
-        q.Description = ds
-    }
-    return q
+	q := Quest{Raw: raw}
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return q
+	}
+	if id, ok := m["id"].(string); ok {
+		q.ID = id
+	}
+	if t, ok := m["title"].(string); ok {
+		q.Title = t
+	}
+	if st, ok := m["subtitle"].(string); ok {
+		q.Subtitle = st
+	}
+	// Description may be a list of strings
+	if dl, ok := m["description"].([]any); ok {
+		parts := make([]string, 0, len(dl))
+		for _, v := range dl {
+			if s, ok := v.(string); ok {
+				parts = append(parts, s)
+			}
+		}
+		if len(parts) > 0 {
+			desc := parts[0]
+			for i := 1; i < len(parts); i++ {
+				desc += "\n" + parts[i]
+			}
+			q.Description = desc
+		}
+	} else if ds, ok := m["description"].(string); ok {
+		q.Description = ds
+	}
+	return q
 }
 
 // Chapter models a quest chapter file.
