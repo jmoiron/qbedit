@@ -1,0 +1,52 @@
+Data types
+Data Tags Value Types
+Type	Description	SNBT Format	SNBT Example
+ Byte	A signed 8-bit integer, ranging from -128 to 127 (inclusive).	<number>b or <number>B	34B, -20b
+ Boolean	NBT has no boolean data type, but byte value 0 and 1 can be represented as true, false. When a byte field is used as a boolean value,  icon is shown.	true, false	true
+ Short	A signed 16-bit integer, ranging from -32,768 to 32,767 (inclusive).	<number>s or <number>S	31415s, -27183s
+ Int	A signed 32-bit integer, ranging from -2,147,483,648 and 2,147,483,647 (inclusive).	<integer_number>	31415926
+ Long	A signed 64-bit integer, ranging from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807 (inclusive).	<number>l or <number>L	31415926l
+ Float	A 32-bit, single-precision floating-point number, ranging from -3.4E+38 to +3.4E+38.
+See IEEE floating point for details.
+
+<number>f or <number>F	3.1415926f
+ Double	A 64-bit, double-precision floating-point, ranging from -1.7E+308 to +1.7E+308.
+See IEEE floating point for details.
+
+<decimal_number>, <number>d or <number>D	3.1415926
+ String	A sequence of characters	A string enclosed in quotes. For strings containing only 0-9, A-Z, a-z, _, -, ., and +, and not confused with other data types, quote enclosure is optional. Quotes can be either single quote ' or double ". Nested quotes can be included within a string by escaping the character with a \ escape.
+<[a-zA-Z0-9_\-\.\+] text>, "<text>" (" within needs to be escaped to \"), or '<text>' (' within needs to be escaped to \')
+
+"Call me \"Ishmael\""
+
+'Call me "Ishmael"'
+
+'Call me \'Ishmael\''
+
+"Call me 'Ishmael'"
+
+ List	An ordered list of tags. The tags must be of the same type, determined by the first tag in the list.	Unnamed tags enclosed in square brackets and delimited by commas.
+[<value>,<value>,...]
+
+[3.2,64.5,129.5]
+ Compound	An ordered list of attribute-value pairs.
+Each tag can be of any type.
+
+Named tags enclosed in curly braces and delimited by commas.
+The key (tag name) can be unquoted if it contains only 0-9, A-Z, a-z, _, -, ., and +. Otherwise the key should be quoted. Quotes can be either single quote ' or double ". Nested quotes can be included within a string by escaping the character with a \ escape.
+
+{<[a-zA-Z0-9_\-\.\+] tag_name>:<value>,"<tag name>":<value>,...}
+
+{X:3,Y:64,Z:129}
+ Byte Array	An ordered list of 8-bit integers. Note that [B;1b,2b,3b] and [1b,2b,3b] are considered as different type, the second one is a  list.	B; followed by an ordered list of byte tags, delimited by commas. Tag is enclosed in square brackets.
+[B;<byte>b,<byte>B,true,false...]
+
+[B;1b,2b,3b]
+ Int Array	An ordered list of 32-bit integers. Note that [I;1,2,3] and [1,2,3] are considered as different type, the second one is a  list.	I; followed by an ordered list of int tags, delimited by commas. Tag is enclosed in square brackets.
+[I;<integer>,<integer>,...]
+
+[I;1,2,3]
+ Long Array	An ordered list of 64-bit integers. Note that [L;1l,2l,3l] and [1l,2l,3l] are considered as different type, the second one is a  list.	L; followed by an ordered list of long tags, delimited by commas. Tag is enclosed in square brackets.
+[L;<long>l,<long>L,...]
+
+[L;1l,2l,3l]

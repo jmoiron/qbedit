@@ -1,0 +1,72 @@
+{{ define "layout_head" }}
+<!doctype html>
+<html class="{{ if .ThemeDark }}dark{{ end }}" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ .Title }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/minecraft.css">
+  <script src="/static/mcformat.js"></script>
+  {{/* sprout allows adding funcs if needed via s.Funcs(...) */}}
+  <script src="/static/cash.min.js"></script>
+  <script src="/static/app.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="side">
+      <div class="chapters-head">
+        <h2 class="title"><a href="/">Chapters</a></h2>
+        <div class="controls">
+          <a class="toggle-all" data-action="expand-all">[+]</a>
+          <a class="toggle-all" data-action="collapse-all">[-]</a>
+        </div>
+      </div>
+      <div class="chapters">
+        {{ if .Top }}
+          {{ range .Top }}
+            {{ if eq .Kind "group" }}
+              <div class="group" data-group="{{ .Group.ID }}">
+                <div class="group-head">
+                  <span class="group-title">{{ mc .Group.Title }}</span>
+                  <a class="group-toggle" data-toggle="{{ .Group.ID }}">[+]</a>
+                </div>
+                <ul class="group-list" data-list="{{ .Group.ID }}">
+                  {{ range .Group.Chapters }}
+                    <li><a class="{{ if eq $.SelectedChapter .Name }}selected{{ end }}" href="/chapter/{{ .Name }}">{{ mc .Title }}</a></li>
+                  {{ end }}
+                </ul>
+              </div>
+            {{ else if eq .Kind "chapter" }}
+              <div><a class="{{ if eq $.SelectedChapter .Chapter.Name }}selected{{ end }}" href="/chapter/{{ .Chapter.Name }}">{{ mc .Chapter.Title }}</a></div>
+            {{ end }}
+          {{ end }}
+        {{ else }}
+          {{ range .Chapters }}
+            <div><a href="/chapter/{{ .Name }}">{{ mc .Title }}</a></div>
+          {{ else }}
+            <div class="muted">No chapters found</div>
+          {{ end }}
+        {{ end }}
+      </div>
+      <hr />
+      <div class="muted">MC {{ .MCVersion }}</div>
+      <div class="muted" style="margin-top:8px;">Chapters: {{ .Parsed }} parsed{{ if gt .Failed 0 }}, <a href="/errors">{{ .Failed }} failed</a>{{ else }}, 0 failed{{ end }}</div>
+      <div class="muted" style="margin-top:8px;">Theme: <a id="toggle-theme">Dark mode</a></div>
+    </aside>
+    <main class="main">
+{{ end }}
+
+{{ define "layout_foot" }}
+    </main>
+  </div>
+</body>
+</html>
+{{ end }}
+
+{{ define "index.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1>qbedit</h1>
+  <p>Select a chapter from the left to begin.</p>
+  {{ template "layout_foot" . }}
+{{ end }}

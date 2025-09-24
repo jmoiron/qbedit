@@ -1,0 +1,14 @@
+github.com/go-chi/chi/v5 v5.2.3 h1:WQIt9uxdsAbgIYgid+BpYc+liqQZGMHRaUwp0JUcvdE=
+github.com/go-chi/chi/v5 v5.2.3/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
+github.com/go-sprout/sprout v1.0.2 h1:sAtDB94vqOa+OczpuzD2lklIaNRmG7DK18loVQ+3zT4=
+github.com/go-sprout/sprout v1.0.2/go.mod h1:HlUXnn3tkTfOj3QKV5q24SX3jN/oUesty1+4ssFaU94=
+github.com/pointlander/compress v1.1.1-0.20190518213731-ff44bd196cc3 h1:hUmXhbljNFtrH5hzV9kiRoddZ5nfPTq3K0Sb2hYYiqE=
+github.com/pointlander/compress v1.1.1-0.20190518213731-ff44bd196cc3/go.mod h1:q5NXNGzqj5uPnVuhGkZfmgHqNUhf15VLi6L9kW0VEc0=
+github.com/pointlander/jetset v1.0.1-0.20190518214125-eee7eff80bd4 h1:RHHRCZeaNyBXdYPMjZNH8/XHDBH38TZzw8izrW7dmBE=
+github.com/pointlander/jetset v1.0.1-0.20190518214125-eee7eff80bd4/go.mod h1:RdR1j20Aj5pB6+fw6Y9Ur7lMHpegTEjY1vc19hEZL40=
+github.com/pointlander/peg v1.0.1 h1:mgA/GQE8TeS9MdkU6Xn6iEzBmQUQCNuWD7rHCK6Mjs0=
+github.com/pointlander/peg v1.0.1/go.mod h1:5hsGDQR2oZI4QoWz0/Kdg3VSVEC31iJw/b7WjqCBGRI=
+github.com/spf13/pflag v1.0.10 h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=
+github.com/spf13/pflag v1.0.10/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
+golang.org/x/text v0.28.0 h1:rhazDwis8INMIwQ4tpjLDzUhx6RlXqZNPEM0huQojng=
+golang.org/x/text v0.28.0/go.mod h1:U8nCwOR8jO/marOQ0QbDiOngZVEBB7MAiitBuMjXiNU=

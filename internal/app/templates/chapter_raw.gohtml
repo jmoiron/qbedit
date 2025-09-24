@@ -1,0 +1,10 @@
+{{ define "chapter_raw.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1>
+    {{ mc .Chapter.Title }}
+    <a class="muted" href="/chapter/{{ .Chapter.Name }}" style="margin-left:8px; text-decoration:none;">←</a>
+  </h1>
+  <pre><code>{{ .Raw }}</code></pre>
+  {{ template "layout_foot" . }}
+{{ end }}
+

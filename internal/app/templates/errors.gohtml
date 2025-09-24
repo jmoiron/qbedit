@@ -1,0 +1,15 @@
+{{ define "errors.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1>Parse Errors</h1>
+  {{ if .Failures }}
+    <ul>
+    {{ range .Failures }}
+      <li><strong>{{ .Name }}</strong><br><span class="muted">{{ .Err }}</span></li>
+    {{ end }}
+    </ul>
+  {{ else }}
+    <p class="muted">No errors.</p>
+  {{ end }}
+  {{ template "layout_foot" . }}
+{{ end }}
+

@@ -1,0 +1,19 @@
+{{ define "chapter.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1>
+    {{ mc .Chapter.Title }}
+    <a class="muted" href="/chapter/{{ .Chapter.Name }}/raw" style="margin-left:8px; text-decoration:none;">→</a>
+  </h1>
+  <ul class="quest-list">
+    {{ range .Chapter.Quests }}
+      <li>
+        {{ $t := .GetTitle }}
+        {{ if $t }}<a href="/chapter/{{ $.Chapter.Name }}/{{ .ID }}">{{ mc $t }}</a>{{ else }}<span class="muted">(untitled)</span>{{ end }}
+        {{ if .Subtitle }} <span class="muted">{{ mc .Subtitle }}</span>{{ end }}
+      </li>
+    {{ else }}
+      <li class="muted">No quests found</li>
+    {{ end }}
+  </ul>
+  {{ template "layout_foot" . }}
+{{ end }}

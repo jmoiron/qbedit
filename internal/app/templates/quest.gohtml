@@ -1,0 +1,58 @@
+{{ define "quest.gohtml" }}
+  {{ template "layout_head" . }}
+  <link rel="stylesheet" href="/static/app.css">
+  <h1>
+    <a href="/chapter/{{ .Chapter.Name }}">{{ mc .Chapter.Title }}</a>
+    <span class="muted">/</span>
+    {{ mc .Quest.GetTitle }}
+  </h1>
+  <div class="edit-wrap">
+    <div class="edit-left">
+      <form method="POST" action="/chapter/{{ .Chapter.Name }}/{{ .Quest.ID }}/save">
+        <label class="label" for="q-title">Title</label>
+        <input name="title" id="q-title" type="text" value="{{ .Quest.Title }}" />
+        <label class="label" for="q-subtitle">Subtitle</label>
+        <input name="subtitle" id="q-subtitle" type="text" value="{{ .Quest.Subtitle }}" />
+        <label class="label" for="q-desc">Description</label>
+        <textarea name="description" id="q-desc">{{ .Quest.Description }}</textarea>
+        <div style="margin-top:8px;">
+          <button type="submit" class="save">Save</button>
+        </div>
+      </form>
+    </div>
+    <div class="edit-right">
+      <div id="q-preview">
+        <h2 class="q-title"></h2>
+        <div class="q-subtitle muted" style="margin-top:4px;"></div>
+        <div class="q-desc" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function stripCodes(s){
+      return (s||'').replace(/[\u00A7&]./g, '');
+    }
+    function escapeHTML(s){
+      return String(s||'').replace(/[&<>"']/g, function(c){
+        switch(c){case '&':return '&amp;';case '<':return '&lt;';case '>':return '&gt;';case '"':return '&quot;';case "'":return '&#39;'}
+        return c;
+      });
+    }
+    function updatePreview() {
+      const title = document.getElementById('q-title').value || '';
+      const subtitle = document.getElementById('q-subtitle').value || '';
+      const desc = document.getElementById('q-desc').value || '';
+      const titleHTML = window.mcFormat ? window.mcFormat(title) : escapeHTML(title);
+      const subtitleHTML = window.mcFormat ? window.mcFormat(subtitle) : subtitle;
+      const descHTML = (desc || '').split('\n').map(s => window.mcFormat ? window.mcFormat(s) : s).join('<br>');
+      document.querySelector('#q-preview .q-title').innerHTML = titleHTML || '<span class="muted">(untitled)</span>';
+      document.querySelector('#q-preview .q-subtitle').innerHTML = subtitleHTML;
+      document.querySelector('#q-preview .q-desc').innerHTML = descHTML;
+    }
+    document.getElementById('q-title').addEventListener('input', updatePreview);
+    document.getElementById('q-subtitle').addEventListener('input', updatePreview);
+    document.getElementById('q-desc').addEventListener('input', updatePreview);
+    updatePreview();
+  </script>
+  {{ template "layout_foot" . }}
+{{ end }}

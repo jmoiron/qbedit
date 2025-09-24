@@ -1,0 +1,64 @@
+package snbt
+
+type SNBT Peg {
+    Builder
+}
+
+# Entry point
+Start <- _ Value _ !.
+
+# Values
+Value <- Compound / List / String / Boolean / Decimal / FloatS / Long / Short / Unquoted
+
+# Compound: { Pair* }
+Compound <- LBRACE { p.BeginCompound() } (PairSep? Pair (PairSep Pair)*)? (EOL+ WSP)? RBRACE
+
+# Pair: Key ':' Value (assign after value)
+Pair <- Key COLON Value { p.PairSet() }
+
+# List: '[' (Value ...)* ']'
+List <- LBRACKET { p.BeginList() } (ListSep? ListItem (ListSep ListItem)*)? (EOL+ WSP)? RBRACKET
+ListItem <- WSP Value { p.ListAppend() }
+
+# Key: identifier or quoted string (capture then SetKey)
+# Allow dots in unquoted identifiers (e.g., keys like foo.bar)
+Key <- (< [A-Za-z_] [A-Za-z0-9_\-.]* > / DQUOTE <StringInner> DQUOTE) { p.SetKey(text) }
+
+# String: double quoted with escapes
+String <- DQUOTE <StringInner> DQUOTE WSP { p.PushString(text) }
+StringInner <- (Escape / !'"' .)*
+Escape <- '\\' [\\"/bfnrt] / Unicode
+Unicode <- '\\' 'u' Hex Hex Hex Hex
+Hex <- [0-9A-Fa-f]
+
+# Unquoted tokens (numbers or id-like)
+Unquoted <- < (!('}' / ']' / ',' / ':' / ' ' / '\n' / '\r' / '\t') .)+ > WSP { p.PushUnquoted(text) }
+
+# Decimal numbers with 'd' or 'D' suffix preserved
+Decimal <- < [+-]? [0-9]+ ('.' [0-9]+)? [dD] > WSP { p.PushDecimal(text) }
+FloatS <- < [+-]? [0-9]+ ('.' [0-9]+)? [fF] > WSP { p.PushFloat(text) }
+Long <- < [+-]? [0-9]+ [lL] > WSP { p.PushLong(text) }
+Short <- < [+-]? [0-9]+ [sS] > WSP { p.PushShort(text) }
+
+# Boolean literals
+Boolean <- ("true" { p.PushBool(true) } / "false" { p.PushBool(false) }) WSP
+
+# Punctuators with trailing space
+LBRACE <- '{' WSP
+RBRACE <- '}' WSP
+LBRACKET <- '[' WSP
+RBRACKET <- ']' WSP
+COLON <- ':' WSP
+COMMA <- ','
+DQUOTE <- '"'
+
+# Separators: optional comma, whitespace/newlines
+PairSep <- (WSP? (COMMA WSP / (EOL+ WSP &Key)))
+ListSep <- (WSP? (COMMA WSP / (EOL+ WSP &Value)))
+
+# Whitespace and comments
+_ <- (WS / EOL / Comment)*
+WS <- ' ' / '\t'
+WSP <- WS*
+EOL <- '\r' '\n' / '\r' / '\n'
+Comment <- ('#' / '//') (!EOL .)* EOL

@@ -1,0 +1,54 @@
+/* Theme variables */
+:root {
+  --bg: #ffffff;
+  --text: #333333;
+  --muted: #888888;
+  --border: #dddddd;
+  --link: #333333;
+  --selected-bg: #eeeeee;
+}
+
+html.dark {
+  --bg: #36393F;
+  --text: #e0e0e0;
+  --muted: #888;
+  --border: #555;
+  --link: #fbfbfb;
+  --selected-bg: #484C52;
+}
+
+/* Base layout */
+html, body { height: 100%; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--link); text-decoration: none; cursor: pointer; }
+a:hover { text-decoration: underline; }
+
+.wrap { display: flex; height: 100vh; }
+.side { width: 300px; border-right: 1px solid var(--border); overflow: auto; padding: 12px; }
+.main { flex: 1; overflow: auto; padding: 16px; }
+
+.title { font-weight: 600; margin: 8px 0; }
+.muted { color: var(--muted); }
+
+/* Sidebar chapter tree */
+.chapters a { display: block; padding: 4px 0; }
+.chapters a.selected { background: var(--selected-bg); border-radius: 4px; padding: 4px; }
+.group-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-weight: 600; }
+.chapters-head { display: flex; align-items: center; justify-content: space-between; }
+.group-toggle { color: #666; cursor: pointer; text-decoration: none; }
+.group-list { margin: 0 0 8px 0; padding: 0 0 0 8px; list-style: none; }
+.group-list li { margin: 2px 0; }
+.controls { display: flex; gap: 8px; margin: 6px 0; }
+.controls a { color: #666; text-decoration: none; cursor: pointer; }
+
+/* Chapter detail quest links */
+.quest-list a { color: var(--link); text-decoration: none; }
+.quest-list a:hover { text-decoration: underline; }
+
+/* Quest editor */
+.edit-wrap { display: flex; gap: 16px; }
+.edit-left, .edit-right { flex: 1 1 50%; }
+.edit-left input[type=text], .edit-left textarea { background: var(--bg); color: var(--text); width: 100%; box-sizing: border-box; padding: 5px; border: 1px dashed var(--border); }
+.edit-left textarea { min-height: 240px; font-family: monospace; }
+.label { font-size: 12px; color: var(--muted); margin: 6px 0; display: block; }
+.save { background: var(--selected-bg); color: var(--link); border: 2px solid var(--border); padding: 5px; }

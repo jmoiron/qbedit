@@ -1,0 +1,28 @@
+/* Minecraft color and format classes */
+.mc-text { color: inherit; }
+
+/* Colors based on standard MC palette */
+.mc-c0 { color: #000000; } /* black */
+.mc-c1 { color: #0000AA; } /* dark_blue */
+.mc-c2 { color: #00AA00; } /* dark_green */
+.mc-c3 { color: #00AAAA; } /* dark_aqua */
+.mc-c4 { color: #AA0000; } /* dark_red */
+.mc-c5 { color: #AA00AA; } /* dark_purple */
+.mc-c6 { color: #FFAA00; } /* gold */
+.mc-c7 { color: #AAAAAA; } /* gray */
+.mc-c8 { color: #555555; } /* dark_gray */
+.mc-c9 { color: #5555FF; } /* blue */
+.mc-ca { color: #55FF55; } /* green */
+.mc-cb { color: #55FFFF; } /* aqua */
+.mc-cc { color: #FF5555; } /* red */
+.mc-cd { color: #FF55FF; } /* light_purple */
+.mc-ce { color: #FFFF55; } /* yellow */
+.mc-cf { color: #FFFFFF; } /* white */
+
+/* Formats */
+.mc-bold { font-weight: bold; }
+.mc-italic { font-style: italic; }
+.mc-underline { text-decoration: underline; }
+.mc-strike { text-decoration: line-through; }
+.mc-obf { filter: blur(0.5px); }
+

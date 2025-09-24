@@ -1,0 +1,1236 @@
+{
+	autofocus_id: "6B3DFA8D8E7F6431"
+	default_hide_dependency_lines: false
+	default_quest_shape: "rsquare"
+	filename: "from_nothing"
+	group: ""
+	icon: "exnihilosequentia:oak_sieve"
+	id: "7E6BC8A786D3B741"
+	order_index: 1
+	quest_links: [ ]
+	quests: [
+		{
+			dependencies: ["448AE4A9F041CC64"]
+			description: [
+				"Every story has a beginning. Usually, that beginning involves punching trees."
+				""
+				"Have you checked out the circular info quests yet? This pack includes &2Ultimine&r and &2Squat Grow&r to streamline the lumberjacking you are about to do."
+			]
+			disable_toast: true
+			icon: "minecraft:oak_log"
+			id: "450F9B10D8FC6FF7"
+			subtitle: "These trees seem oddly punchable"
+			tasks: [
+				{
+					count: 4L
+					id: "69E9E156D942455D"
+					item: {
+						Count: 1
+						id: "itemfilters:tag"
+						tag: {
+							value: "minecraft:logs"
+						}
+					}
+					title: "Any Logs"
+					type: "item"
+				}
+				{
+					id: "476BF57E0F3E0E49"
+					item: "minecraft:crafting_table"
+					type: "item"
+				}
+			]
+			title: "El Classico"
+			x: 1.0d
+			y: -4.5d
+		}
+		{
+			description: [
+				"As suspected!"
+				""
+				"At first blush, this world &eappears&r normal, but the physics here are quite bizarre. Maybe it &o&5isn't your world&r after all."
+				""
+				"&9Water&r, arranged in a 2x2 square, is limitless.  It flows forever, creating endless stone when contacting lava.  The resulting stone is &erich in minerals&r of all kinds."
+				""
+				"&9Trees&r seem to grow almost instantaneously, and organic matter breaks down into dirt readily. The dirt here overflows with &eagricultural products&r that generate spontaneously."
+				""
+				"Using the wood from this tree, you should be able to establish yourself and start the hard work of figuring out what's happened."
+			]
+			disable_toast: true
+			icon: "exnihilosequentia:jungle_sieve"
+			id: "448AE4A9F041CC64"
+			shape: "hexagon"
+			size: 1.5d
+			tasks: [{
+				id: "2FC88C5939DFCB39"
+				title: "Lore"
+				type: "checkmark"
+			}]
+			title: "&2Ex Nihilo&r: From Nothing"
+			x: -0.5d
+			y: -4.5d
+		}
+		{
+			dependencies: ["450F9B10D8FC6FF7"]
+			description: [
+				"Make a &9Wooden Crook&r out of sticks, and then crook leaves to get &9Silkworms&r.  Probably a good job for &2ultimine&r."
+				""
+				"Once you have &9Silkworms&r, grow another tree and &einfest it&r by right clicking a leaf block with a silkworm.  Once the infestation has completed, you can crook the infested leaves to get &9String&r!"
+			]
+			icon: {
+				Count: 1
+				id: "exnihilosequentia:wooden_crook"
+				tag: {
+					Damage: 0
+				}
+			}
+			id: "6E2EAFBC87FDAD2B"
+			subtitle: "The First Triumverate"
+			tasks: [
+				{
+					id: "4F16670ACD08F500"
+					item: {
+						Count: 1
+						id: "exnihilosequentia:wooden_crook"
+						tag: {
+							Damage: 0
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "7728A6DB45F57E38"
+					item: "exnihilosequentia:silkworm"
+					type: "item"
+				}
+				{
+					count: 9L
+					id: "72E2CAC766D1ABCC"
+					item: "minecraft:string"
+					type: "item"
+				}
+			]
+			title: "Crooked Ways"
+			x: 1.0d
+			y: -3.0d
+		}
+		{
+			dependencies: ["450F9B10D8FC6FF7"]
+			description: [
+				"Using a composter, you can break down organic material into bonemeal."
+				""
+				"But if you use an &9oak barrel&r, you can break them down into dirt.  "
+				""
+				"If you have been using your &9Wooden Crook&r on leaves, you probably have some extra &9oak saplings&r you could use."
+			]
+			icon: "exnihilosequentia:oak_barrel"
+			id: "4A6FD7DCE495D0FB"
+			subtitle: "I thought there was a compost bin?"
+			tasks: [
+				{
+					id: "2EDB5A976EBB35D6"
+					item: "exnihilosequentia:oak_barrel"
+					type: "item"
+				}
+				{
+					id: "30289708BE280791"
+					item: "minecraft:dirt"
+					type: "item"
+				}
+			]
+			title: "Getting Dirty"
+			x: 2.5d
+			y: -4.5d
+		}
+		{
+			dependencies: ["6E2EAFBC87FDAD2B"]
+			description: [
+				"This humble sieve will be your early game companion."
+				""
+				"Arranging them in a rectangle, up to 5x5, allows you to sieve up to 25 items in parallel.  This quest requires 4 to get started.  "
+				""
+				"Crafting in batches, and planning multiple &eparallel systems&r for important processes are good habits to develop early and will significantly streamline your progress."
+			]
+			icon: "exnihilosequentia:oak_sieve"
+			id: "583F3A986CA3A78A"
+			tasks: [
+				{
+					count: 4L
+					id: "783B70A6165003BB"
+					item: "exnihilosequentia:oak_sieve"
+					type: "item"
+				}
+				{
+					count: 4L
+					id: "4EE7681CF57EB98A"
+					item: "exnihilosequentia:string_mesh"
+					type: "item"
+				}
+				{
+					count: 4L
+					id: "49CE609E7C4AF894"
+					item: "exnihilosequentia:stone_pebble"
+					type: "item"
+				}
+			]
+			title: "Sieving"
+			x: 2.5d
+			y: -3.0d
+		}
+		{
+			dependencies: ["2536E4A084745D5A"]
+			description: [
+				"You can break down the cobblestone you have made into increasingly fine grained blocks using a &9hammer&r.  At this stage, you probably want a &9wooden hammer&r or one of the stone variants."
+				""
+				"&9Gravel&r, &9Sand&r and &9Dust&r can be put through the sieve to gain materials.  Check JEI (by hovering over an item and pressing &3u&r) to see what they are."
+			]
+			icon: "exnihilosequentia:dust"
+			id: "1B5F2C95282B1E14"
+			rewards: [{
+				count: 64
+				id: "33EF906D6126A84E"
+				item: "minecraft:cobblestone"
+				type: "item"
+			}]
+			subtitle: "You &nare&r using Ultimine, right?"
+			tasks: [
+				{
+					count: 16L
+					id: "0AD25F289BFBB5B4"
+					item: "minecraft:gravel"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "0D44A25D110482D4"
+					item: "minecraft:sand"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "5CF2D4812F765679"
+					item: "exnihilosequentia:dust"
+					type: "item"
+				}
+				{
+					id: "39A83FB885BCDBC2"
+					item: {
+						Count: 1
+						id: "itemfilters:tag"
+						tag: {
+							value: "exnihilosequentia:hammer"
+						}
+					}
+					title: "Crushing Hammer"
+					type: "item"
+				}
+			]
+			title: "Dust to Dust"
+			x: 4.0d
+			y: -3.0d
+		}
+		{
+			dependencies: ["583F3A986CA3A78A"]
+			description: [
+				"These pebbles can be used to craft stone variants that can be processed and turned into useful materials later. "
+				""
+				"Don't bother hoarding them, but it may be worth exploring their possibilities now, as they represent &erenewable sources&r of those materials."
+				""
+				"You can find other stone variants by sifting &9Coarse Dirt&r."
+			]
+			id: "010C045C1EBA07C4"
+			shape: "circle"
+			subtitle: "Useful Stone Variants"
+			tasks: [
+				{
+					count: 16L
+					id: "713079072B2B620F"
+					item: "exnihilosequentia:granite_pebble"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "6F12B4D0857B9B72"
+					item: "exnihilosequentia:basalt_pebble"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "5C35A2F75193CFC3"
+					item: "exnihilosequentia:andesite_pebble"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "7BA24FE464122A84"
+					item: "exnihilosequentia:deepslate_pebble"
+					type: "item"
+				}
+				{
+					count: 16L
+					id: "1694818E0B469C50"
+					item: "exnihilosequentia:diorite_pebble"
+					type: "item"
+				}
+			]
+			title: "Fruity Pebbles"
+			x: 1.0d
+			y: -1.5d
+		}
+		{
+			dependencies: ["583F3A986CA3A78A"]
+			description: [
+				"The &mcobble&r cornerstone of every minecraft world.  Slightly more difficult to come by up here in the sky, for now."
+				""
+				"You will want to build at least one vanilla &2furnace&r early, as you'll need to cook porcelain clay in order to procure lava for a vanilla cobblestone generator."
+				""
+				"Unless you enjoy sieving dirt?"
+			]
+			icon: "minecraft:cobblestone"
+			id: "2536E4A084745D5A"
+			rewards: [{
+				id: "6B8231803945ED43"
+				item: "minecraft:furnace"
+				type: "item"
+			}]
+			subtitle: "Absolute Cobblers"
+			tasks: [{
+				id: "19E8B2A3BADED05F"
+				item: "minecraft:cobblestone"
+				type: "item"
+			}]
+			title: "Cobblestone"
+			x: 4.0d
+			y: -4.5d
+		}
+		{
+			dependencies: [
+				"1B5F2C95282B1E14"
+				"68A13B75D894A853"
+				"505F907674D0821E"
+			]
+			description: [
+				"&9Buckets&r are a little more complicated than you remember.  You'll need to make a &aHammer&r in order to make the &9Iron Plates&r you need to craft one."
+				""
+				"Once you do, put some water into an &9Oak Barrel&r, and then place some &9Dust&r inside, you'll get clay!"
+				""
+				"You'll be needing it."
+			]
+			id: "1596BF8DD48411AF"
+			rewards: [{
+				count: 16
+				id: "646C68CB6502E67B"
+				item: "minecraft:clay_ball"
+				type: "item"
+			}]
+			subtitle: "Perfectly Balanced"
+			tasks: [
+				{
+					count: 16L
+					id: "3382CF3CB2C61E41"
+					item: "minecraft:clay_ball"
+					type: "item"
+				}
+				{
+					id: "72106FF259096B90"
+					item: "minecraft:bucket"
+					type: "item"
+				}
+			]
+			title: "Clay"
+			x: 5.5d
+			y: -3.0d
+		}
+		{
+			dependencies: ["1B5F2C95282B1E14"]
+			description: [
+				"&6Iron&r, &6Copper&r, and &6Tin&r are the the foundational elements for early-game Gregtech."
+				""
+				"With &6Iron&r, you can make &6Wrought Iron&r and eventually &6Steel&r."
+				""
+				"With &6Copper&r and &6Tin&r you can make &6Bronze&r, the primary alloy for the Steam Age."
+			]
+			id: "505F907674D0821E"
+			subtitle: "Chalcolithic?"
+			tasks: [
+				{
+					id: "726D6E1F43461633"
+					item: "gtceu:crushed_iron_ore"
+					type: "item"
+				}
+				{
+					id: "0D67D35AC05C878C"
+					item: "gtceu:crushed_copper_ore"
+					type: "item"
+				}
+				{
+					id: "3E14C8CF07B3474A"
+					item: "gtceu:crushed_tin_ore"
+					type: "item"
+				}
+			]
+			title: "Starting Ores"
+			x: 4.0d
+			y: -1.5d
+		}
+		{
+			dependencies: ["12289047D9E54B1E"]
+			description: [
+				"Anachronistically, we will work &6Iron&r before we get to &6Bronze&r."
+				""
+				"Usually, Gregtech forces you to smelt &6Iron Nuggets&r for &6Wrought Iron&r, but the gods of this world are generous, and there is a &eblasting&r recipe for the vanilla &9Blast Furnace&r."
+				""
+				"&6Wrought Iron&r is the [&8ULV&r] Ultra Low Voltage tier material, but there is no power system for that tier.  Its primary use is for &oGregtech Tools&r, as tools made from it have 50% more durability than &6Iron&r ones."
+			]
+			icon: "gtceu:wrought_iron_ingot"
+			id: "338399548BB160E3"
+			subtitle: "Before Bronze?"
+			tasks: [{
+				count: 6L
+				id: "42D9091200EE0429"
+				item: "gtceu:wrought_iron_ingot"
+				type: "item"
+			}]
+			title: "Iron"
+			x: 5.5d
+			y: 0.0d
+		}
+		{
+			dependencies: ["338399548BB160E3"]
+			description: [
+				"&aGregtech tools&r can be used to create plates from ingots, cut plates into wires, crush ores, assemble machine hulls, and more.  Eventually, you will only use them to configure machines, as mechanization will do these jobs more efficiently."
+				""
+				"The &aHammer&r is your first way to create &eplates&r, which are used by many other tools and machines."
+				""
+				"The &aWrench&r configures &epipes&r in the world, and is also used for crafting."
+				""
+				"The &aMortar&r can do some basic maceration tasks, and opens up your first alloys."
+				""
+				"You can use the &aScrewdriver&r reward to configure covers, the basics of early logistics."
+			]
+			id: "1A30EE1EAD1165CA"
+			rewards: [
+				{
+					count: 16
+					id: "2B535AF4BC9155FD"
+					item: "gtceu:wrought_iron_ingot"
+					type: "item"
+				}
+				{
+					id: "35478593BB88ADC4"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_screwdriver"
+						tag: {
+							DisallowContainerItem: 0b
+							GT.Behaviours: { }
+							GT.Tool: {
+								Damage: 0
+								Enchantability: 5
+								MaxDamage: 383
+							}
+							HideFlags: 2
+						}
+					}
+					type: "item"
+				}
+			]
+			subtitle: "Microcrafting Time"
+			tasks: [
+				{
+					id: "68A13B75D894A853"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_hammer"
+						tag: {
+							Damage: 0
+							GT.Tool: {
+								Damage: 0
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "105DFFF1B82A642F"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_wrench"
+						tag: {
+							Damage: 0
+							GT.Tool: {
+								Damage: 0
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "6AD94D8389DAA759"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_mortar"
+						tag: {
+							DisallowContainerItem: 0b
+							GT.Behaviours: { }
+							GT.Tool: {
+								Damage: 0
+								Enchantability: 5
+								MaxDamage: 383
+							}
+							HideFlags: 2
+						}
+					}
+					type: "item"
+				}
+			]
+			title: "Gregtech Tools"
+			x: 7.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["1A30EE1EAD1165CA"]
+			description: [
+				"If you crush down some &6Copper&r and &6Tin&r into dust using your &9Wrought Iron Mortar&r, you should be able to craft them together to get &6Bronze Powder&r."
+				""
+				"Bronze is the hull material for Steam powered generators and machinery.  On to the steam age!"
+			]
+			icon: "gtceu:bronze_ingot"
+			id: "5D0B8F0841154E4C"
+			rewards: [{
+				count: 16
+				id: "3BEC50228AF563B5"
+				item: "gtceu:bronze_ingot"
+				type: "item"
+			}]
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Bronze Age"
+			tasks: [
+				{
+					count: 3L
+					id: "457440D0E3D99D5F"
+					item: "gtceu:bronze_dust"
+					type: "item"
+				}
+				{
+					id: "1CA608778E1B1F89"
+					item: "gtceu:bronze_ingot"
+					type: "item"
+				}
+				{
+					id: "277866DB22C8A24E"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_mortar"
+						tag: {
+							Damage: 0
+							GT.Tool: {
+								Damage: 0
+							}
+						}
+					}
+					optional_task: true
+					type: "item"
+				}
+			]
+			title: "Bronze"
+			x: 8.5d
+			y: -1.5d
+		}
+		{
+			dependencies: ["1596BF8DD48411AF"]
+			description: [
+				"Place a &9Fired Crucible&r on top of a heat source, and you can melt down &9Cobblestone&r and its variants into Lava.  The best heat source we will have for a while is a &9Campfire&r."
+				""
+				"When water touches a &osource&r lava block, it makes &9Obsidian&r, but if it touches flowing lava, it makes &9Cobblestone&r.  "
+				""
+				"It's a good idea to make a basic vanilla Cobblestone Generator so you can stop fiddling with pebbles."
+				""
+				"If you make it wider than 1 block, you can take advantage of &2Ultimine&r to get more than one stone at a time, or crush with a &9Hammer&r and get gravel directly!  Just don't make it out of cobblestone if you do this."
+			]
+			icon: "minecraft:lava_bucket"
+			id: "69ADA2F357C4A3B4"
+			rewards: [{
+				id: "65A7FA9707D0D539"
+				item: "minecraft:lava_bucket"
+				type: "item"
+			}]
+			subtitle: "Liquid Hot Magma"
+			tasks: [
+				{
+					count: 7L
+					id: "6B9A135AB200C11F"
+					item: "exnihilosequentia:porcelain_clay"
+					type: "item"
+				}
+				{
+					id: "4A3CB1A9F74B68E8"
+					item: "exnihilosequentia:fired_crucible"
+					type: "item"
+				}
+				{
+					id: "54EAADFD3104D4A2"
+					item: "minecraft:campfire"
+					type: "item"
+				}
+				{
+					id: "375978C2DDDB7F65"
+					item: "minecraft:lava_bucket"
+					type: "item"
+				}
+			]
+			title: "Lava Generation"
+			x: 5.5d
+			y: -4.5d
+		}
+		{
+			dependencies: ["505F907674D0821E"]
+			description: [
+				"The &6Charcoal&r furnace recipe has been moved into the &evanilla&r &9Blast Furnace&r."
+				""
+				"&2Gregtech&r usually unlocks charcoal at the &bCoke Oven&r, but in a normal world, you'd also be able to mine for &9Coal&r.  You won't be able to get &9Coal&r until you harness steam."
+				""
+				"Not to worry, we will need that &bCoke Oven&r for &6Creosote Oil&r."
+			]
+			id: "12289047D9E54B1E"
+			rewards: [{
+				count: 5
+				id: "63619809B3756ABD"
+				item: "minecraft:iron_ingot"
+				type: "item"
+			}]
+			subtitle: "Activated"
+			tasks: [
+				{
+					id: "5AF648DF08E8AAC1"
+					item: "minecraft:charcoal"
+					type: "item"
+				}
+				{
+					id: "393307DD46C6B27A"
+					item: "minecraft:blast_furnace"
+					type: "item"
+				}
+			]
+			title: "Charcoal"
+			x: 4.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["1596BF8DD48411AF"]
+			description: [
+				"The &9Coke Oven&r is the biggest pre-steam milestone, and likely your first Gregtech multiblock machine!  "
+				""
+				"It is a hollow 3x3x3 cube, but you can hover your cursor over the &9Coke Oven&r controller in your inventory and press &3u&r, then select the &eMultiblock Preview&r tab to see how to build it.  You'll want to get comfortable with this UI for future multiblocks."
+				""
+				"Cells are &estackable buckets&r, and a bit more besides.  These should ease the tedium of crafting &9Treated Planks&r and &9Paper&r slightly."
+				""
+				"If you empty craft an &aempty fluid cell&r, you will get a &auniversal cell&r, which is capable of holding fractional buckets of a single liquid."
+			]
+			icon: "gtceu:coke_oven"
+			id: "518C743F49E7BA04"
+			rewards: [
+				{
+					count: 32
+					id: "0E52A364794F849A"
+					item: "gtceu:coke_gem"
+					type: "item"
+				}
+				{
+					count: 4
+					id: "4775585A34C69697"
+					item: "gtceu:fluid_cell"
+					type: "item"
+				}
+			]
+			size: 1.25d
+			subtitle: "What is this, &2Railcraft&r?"
+			tasks: [
+				{
+					id: "61EE929E9902AE17"
+					item: "gtceu:coke_oven"
+					type: "item"
+				}
+				{
+					count: 25L
+					id: "309EEDE4395479AA"
+					item: "gtceu:coke_oven_bricks"
+					type: "item"
+				}
+			]
+			title: "Coke Oven"
+			x: 7.0d
+			y: -3.0d
+		}
+		{
+			dependencies: ["448AE4A9F041CC64"]
+			dependency_requirement: "one_started"
+			description: [
+				"This pack includes &2Effortless Building&r, bound by default to &3left-alt&r.  Holding the keybind will get you a radial menu from which you can select various different placement types."
+				""
+				"Place a block in one corner of your shape, then another, and the rest will be filled in."
+				""
+				"This is very useful for building our your platform to get more space, and for placing large amounts of material in the world to crush with your &9Hammer&r."
+			]
+			icon: "minecraft:brick"
+			id: "6AD11C92F9E92A01"
+			shape: "circle"
+			size: 0.75d
+			subtitle: "Look Ma, No Wands!"
+			tasks: [{
+				id: "46BAACC68BAB43C8"
+				title: "Effortless Building"
+				type: "checkmark"
+			}]
+			title: "&2Effortless Building&r"
+			x: -1.875d
+			y: -4.5d
+		}
+		{
+			dependencies: ["448AE4A9F041CC64"]
+			dependency_requirement: "one_started"
+			description: [
+				"This pack includes &2FTB Ultimine&r, bound by default to &3grave&r (the key above &3tab&r)."
+				""
+				"When the keybind is held, mining a block in the world will mine adjacent identical blocks.  This is great for &9Crooking&r leaves, &9Hammering&r various stones, or felling trees."
+				""
+				"Also great for felling trees are &aGregtech Lumber Axes&r. Here's a diamond one to get you started."
+			]
+			icon: {
+				Count: 1
+				id: "minecraft:diamond_pickaxe"
+				tag: {
+					Damage: 0
+				}
+			}
+			id: "66A592F2E3BFD51A"
+			rewards: [{
+				id: "707DB9A314239A3E"
+				item: {
+					Count: 1
+					id: "gtceu:diamond_axe"
+					tag: {
+						DisallowContainerItem: 0b
+						GT.Behaviours: {
+							DisableShields: 1b
+							TreeFelling: 1b
+						}
+						GT.Tool: {
+							Damage: 0
+							Enchantability: 18
+							HarvestLevel: 3
+							MaxDamage: 767
+							ToolSpeed: 8.0f
+						}
+						HideFlags: 2
+					}
+				}
+				type: "item"
+			}]
+			shape: "circle"
+			size: 0.75d
+			subtitle: "Vein Miner, Ore Excavator"
+			tasks: [{
+				id: "7B15484C83B279D8"
+				title: "Ultimine"
+				type: "checkmark"
+			}]
+			title: "&2Ultimine&r"
+			x: -1.875d
+			y: -5.625d
+		}
+		{
+			dependencies: ["448AE4A9F041CC64"]
+			dependency_requirement: "one_started"
+			description: [
+				"This pack includes &2Squat Grow&r."
+				""
+				"When you dash or squat repeatedly (&3shift&r) near trees or crops, a &9Bonemeal&r effect will be applied, speeding up their growth."
+				""
+				"Since you have started with only a tree and some dirt, this should come in handy."
+				""
+				"Just in case you missed getting a &9sapling&r from your first tree, these should get you re-started."
+			]
+			icon: "minecraft:oak_sapling"
+			id: "036D6BE6D47E6D70"
+			rewards: [{
+				count: 4
+				id: "7676663C4121545A"
+				item: "minecraft:oak_sapling"
+				type: "item"
+			}]
+			shape: "circle"
+			size: 0.75d
+			subtitle: "Tree Twerking"
+			tasks: [{
+				id: "556C37465F140017"
+				title: "Squat Grow"
+				type: "checkmark"
+			}]
+			title: "&2Squat Grow&r"
+			x: -1.875d
+			y: -3.375d
+		}
+		{
+			dependencies: [
+				"69ADA2F357C4A3B4"
+				"1ECD7E6A67B32B50"
+			]
+			description: [
+				"&9Netherrack&r is obtained by placing &6Redstone&r in a stone barrel full of &9Lava&r."
+				""
+				"You can then crush it with your &9Hammer&r and sieve the resulting &9crushed netherrack&r to get some useful ores and &6sulfur&r."
+			]
+			icon: "minecraft:netherrack"
+			id: "57E5ED548029C284"
+			rewards: [{
+				count: 16
+				id: "0A491AAF07BA9712"
+				item: "minecraft:netherrack"
+				type: "item"
+			}]
+			tasks: [
+				{
+					id: "271D1096605C67EF"
+					item: "exnihilosequentia:crushed_netherrack"
+					type: "item"
+				}
+				{
+					id: "361642862F1AA9C4"
+					item: "gtceu:crushed_gold_ore"
+					type: "item"
+				}
+				{
+					id: "725904069B296EB4"
+					item: "gtceu:sulfur_dust"
+					type: "item"
+				}
+			]
+			title: "Netherrack"
+			x: 7.0d
+			y: -4.5d
+		}
+		{
+			dependencies: ["69ADA2F357C4A3B4"]
+			description: [
+				"&9End Stone&r can be obtained by placing &6Glowstone Dust&r into a &9Stone Barrel&r full of &9Lava&r."
+				""
+				"You can then crush it down with your &9Hammer&r and sieve the resulting &9Crushed End Stone&r."
+				""
+				"It will be a while until we can create &9ender pearls&r with the resulting &5ender pearl dust&r, but we can compress it into &eender dust&r."
+			]
+			icon: "minecraft:end_stone"
+			id: "61898B593512B8B8"
+			rewards: [{
+				count: 16
+				id: "0B7CC67962AA97F0"
+				item: "minecraft:end_stone"
+				type: "item"
+			}]
+			subtitle: "The endest of stones"
+			tasks: [
+				{
+					id: "6E809852E8E7B1DD"
+					item: "exnihilosequentia:crushed_end_stone"
+					type: "item"
+				}
+				{
+					id: "0F1BCB1FF31E1C2D"
+					item: "gtceu:ender_pearl_dust"
+					type: "item"
+				}
+			]
+			title: "End Stone"
+			x: 5.5d
+			y: -6.0d
+		}
+		{
+			dependencies: [
+				"783B70A6165003BB"
+				"183B84F55452A5A4"
+			]
+			description: [
+				"&9Soul Sand&r is one of the primary uses of &9Witch Water&r."
+				""
+				"Put an &9Oak Barrel&r on some dirt that you have infected with &9Mycelium Spores&r and then fill it with water.  You should see a progress meter as it turns to &9Witch Water&r.  Add some &6Sand&r, and you've got &9Soul Sand&r!"
+				""
+				"Sieving this will be your primary source of &6Nether Quartz&r, though better meshes should yield other materials."
+				""
+				"Unfortunately, in 1.20, you can no longer use &9Witch Water&r to make dirt generators."
+			]
+			icon: "minecraft:soul_sand"
+			id: "4682B17BD9261921"
+			rewards: [{
+				count: 16
+				id: "12C31EC7F0F3DB20"
+				item: "minecraft:soul_sand"
+				type: "item"
+			}]
+			subtitle: "Mr Dynamite"
+			tasks: [
+				{
+					id: "09ABA47FD0F52071"
+					item: "minecraft:soul_sand"
+					type: "item"
+				}
+				{
+					id: "45BAF5F1913B703D"
+					item: "minecraft:quartz"
+					type: "item"
+				}
+			]
+			x: 2.5d
+			y: -6.0d
+		}
+		{
+			dependencies: ["68A13B75D894A853"]
+			description: [
+				"The &9Crushed Redstone Ore&r you get out of the sieve needs to be processed into &6Redstone&r before it can be used in recipes."
+				""
+				"You can crush it into &9Dirty Redstone Dust&r with a &9Macerator&r, but if you are not mechanized yet, you can use your &9Gregtech Hammer&r."
+				""
+				"You can wash a stack of any dirty dust or crushed ore by right clicking it onto a &9Cauldron&r full of water.  You don't have to drop the items anymore!"
+			]
+			hide_dependency_lines: true
+			id: "1ECD7E6A67B32B50"
+			rewards: [
+				{
+					count: 16
+					id: "0D505597050288F8"
+					item: "minecraft:redstone"
+					type: "item"
+				}
+				{
+					count: 8
+					id: "1988A98F0D663867"
+					item: "minecraft:iron_ingot"
+					type: "item"
+				}
+			]
+			subtitle: "Washing Dirty Ore"
+			tasks: [
+				{
+					id: "070CD0B2C1298A1F"
+					item: "minecraft:cauldron"
+					type: "item"
+				}
+				{
+					id: "189530F6DEFE32BD"
+					item: "minecraft:redstone"
+					type: "item"
+				}
+			]
+			title: "Redstone"
+			x: 7.0d
+			y: -6.0d
+		}
+		{
+			dependencies: ["1A30EE1EAD1165CA"]
+			description: [
+				"Early on, your primary sources of &6Clay&r, &9Soul Sand&r, &9Netherrack&r, &9End Stone&r, and &6Obsidian&r all involve putting things in barrels and filling them back up."
+				""
+				"Pretty tedious to do by hand!"
+				""
+				"&2Gregtech&r item and fluid pipes are very powerful, but they require &9conveyors&r and &9pumps&r, respectively, to extract from an inventory. These are the first tier!"
+				""
+				"You will need to place a &9pump&r/&9conveyor&r onto a &afluid&r/&aitem&r pipe, respectively, and switch its mode to &3import&r to pull from the adjacent drum/inventory."
+			]
+			icon: "ulvcovm:ulv_conveyor_module"
+			id: "6B3DFA8D8E7F6431"
+			min_width: 250
+			rewards: [
+				{
+					count: 2
+					id: "4F96C9210B6360F1"
+					item: "ulvcovm:ulv_electric_pump"
+					type: "item"
+				}
+				{
+					count: 2
+					id: "5BB2AA900646D23F"
+					item: "ulvcovm:ulv_conveyor_module"
+					type: "item"
+				}
+			]
+			subtitle: "\"Voltage\""
+			tasks: [
+				{
+					id: "28BF4FF31569B9EC"
+					item: "ulvcovm:ulv_conveyor_module"
+					type: "item"
+				}
+				{
+					id: "0C18159A4774AB6E"
+					item: "ulvcovm:ulv_electric_pump"
+					type: "item"
+				}
+				{
+					id: "6CB6279334C7ADE1"
+					item: {
+						Count: 1
+						id: "itemfilters:or"
+						tag: {
+							items: [
+								{
+									Count: 1b
+									id: "gtceu:copper_tiny_fluid_pipe"
+								}
+								{
+									Count: 1b
+									id: "gtceu:copper_small_fluid_pipe"
+								}
+								{
+									Count: 1b
+									id: "gtceu:copper_normal_fluid_pipe"
+								}
+							]
+						}
+					}
+					title: "Early Fluid Pipes"
+					type: "item"
+				}
+				{
+					id: "37692B9B22BE8CD6"
+					item: {
+						Count: 1
+						id: "itemfilters:or"
+						tag: {
+							items: [
+								{
+									Count: 1b
+									id: "gtceu:tin_small_item_pipe"
+								}
+								{
+									Count: 1b
+									id: "gtceu:tin_normal_item_pipe"
+								}
+							]
+						}
+					}
+					title: "Early Item Pipes"
+					type: "item"
+				}
+			]
+			title: "&2ULV Covers&r"
+			x: 5.5d
+			y: -1.5d
+		}
+		{
+			dependencies: [
+				"4682B17BD9261921"
+				"61898B593512B8B8"
+			]
+			description: [
+				"The &9Click Machine&r can automatically use items in its inventory on your sieves."
+				""
+				"The &9Item Collector&r can pick up items dropped in the world, with more than enough coverage to pick up sieve drops."
+				""
+				"Combined, you can have basic sieve automation.  You'll have better options later, but any resources you can &ecreate passively&r will save you time later when you are crafting!"
+			]
+			id: "5500B7E9C7EA7240"
+			subtitle: "Slow But Steady"
+			tasks: [
+				{
+					id: "717EF6EEAC0B396B"
+					item: "itemcollectors:basic_collector"
+					type: "item"
+				}
+				{
+					id: "310A15B2BB346B8C"
+					item: "clickmachine:auto_clicker"
+					type: "item"
+				}
+			]
+			title: "Early Sieve Automation"
+			x: 4.0d
+			y: -6.0d
+		}
+		{
+			dependencies: ["450F9B10D8FC6FF7"]
+			description: [
+				"The &9Oak Crucible&r can break down organic material into water. Although it says it has heat, it doesn't need a heat source to do this."
+				""
+				"This process takes a while.  Making an infinite water source with your first two &9Buckets&r worth wouldn't be a bad idea."
+			]
+			id: "183B84F55452A5A4"
+			subtitle: "Not a drop to drink"
+			tasks: [{
+				id: "7B0DC7EE203A2E9D"
+				item: "exnihilosequentia:oak_crucible"
+				type: "item"
+			}]
+			x: 1.0d
+			y: -6.0d
+		}
+		{
+			dependencies: ["1A30EE1EAD1165CA"]
+			description: [
+				"These are the rest of the &aGregtech tools&r you'll need for crafting and configuring."
+				""
+				"The &aScrewdriver&r and &aCrowbar&r help with configuring covers and sides of machines."
+				""
+				"&aWire Cutters&r configure cables.  &aSoft Hammers&r disable and enable running machines."
+			]
+			id: "43344C33B55461DB"
+			rewards: [{
+				count: 24
+				id: "31CE4CA79F2D5F37"
+				item: "gtceu:wrought_iron_ingot"
+				type: "item"
+			}]
+			subtitle: "Rounding Out the Toolbox"
+			tasks: [
+				{
+					id: "0CA3E1D7D60B06EB"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_file"
+						tag: {
+							DisallowContainerItem: 0b
+							GT.Behaviours: { }
+							GT.Tool: {
+								Damage: 0
+								Enchantability: 5
+								MaxDamage: 383
+							}
+							HideFlags: 2
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "23B3D9B3ABA52BCF"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_saw"
+						tag: {
+							Damage: 0
+							GT.Tool: {
+								Damage: 0
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "350FD02E7AADCE72"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_wire_cutter"
+						tag: {
+							Damage: 0
+							GT.Tool: {
+								Damage: 0
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "43AD500D849A89BB"
+					item: {
+						Count: 1
+						id: "gtceu:wrought_iron_crowbar"
+						tag: {
+							DisallowContainerItem: 0b
+							GT.Behaviours: { }
+							GT.Tool: {
+								Damage: 0
+								Enchantability: 5
+								HarvestLevel: 2
+								MaxDamage: 383
+								ToolSpeed: 6.0f
+							}
+							HideFlags: 2
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "1F05C24215BA9C03"
+					item: {
+						Count: 1
+						id: "gtceu:wood_mallet"
+						tag: {
+							DisallowContainerItem: 0b
+							GT.Behaviours: { }
+							GT.Tool: {
+								Damage: 0
+								Enchantability: 10
+								MaxDamage: 127
+							}
+							HideFlags: 2
+						}
+					}
+					type: "item"
+				}
+			]
+			title: "The Other Tools"
+			x: 7.0d
+			y: -1.5d
+		}
+		{
+			dependencies: [
+				"39A83FB885BCDBC2"
+				"583F3A986CA3A78A"
+			]
+			description: [
+				"If you need &emore dirt&r, you can craft &9Dirt&r and &9Gravel&r together to make &9Coarse Dirt&r."
+				""
+				"Sieving &9Coarse Dirt&r yields more than double the &9Dirt&r that you put in, at a slight loss of &9Gravel&r."
+				""
+				"If you want &ecertified organic&r, then your best bet for compostables right now is &eshearing leaves&r."
+			]
+			id: "767C6E7545D419F2"
+			subtitle: "More Dirt"
+			tasks: [{
+				id: "00664BB79EE9D3C9"
+				item: "minecraft:coarse_dirt"
+				type: "item"
+			}]
+			title: "Dirt Without Mulch"
+			x: 2.5d
+			y: -1.5d
+		}
+		{
+			dependencies: ["518C743F49E7BA04"]
+			description: [
+				"&2Colossal Chests&r are upgradable multiblock chests for powerful early game storage. They are available after the &bCoke Oven&r."
+				""
+				"Use the &9Colossal Chest Interface&r to connect to other inventories via pipes or exporters. This block is compatible with your &5Crafting Station&r and with &2Tom's storage&r interfaces."
+				""
+				"The &9Chest Upgrade Tool&r allows you to upgrade a chest in place, just have the blocks in your inventory and &3right-click&r on the &9Colossal Chest Core&r."
+				""
+				"Your items are \"stored\" in the core, not the other blocks.  If you break the core, you might have a bad time."
+			]
+			icon: "colossalchests:colossal_chest_wood"
+			id: "2BE1D4DD8EA380E1"
+			rewards: [{
+				id: "36B75B48DE62030B"
+				item: "colossalchests:upgrade_tool"
+				type: "item"
+			}]
+			size: 1.25d
+			subtitle: "Where's that embiggening syringe?"
+			tasks: [
+				{
+					id: "2AB980BF564860B1"
+					item: "colossalchests:colossal_chest_wood"
+					type: "item"
+				}
+				{
+					count: 7L
+					id: "08DFEFE59ADFB9CF"
+					item: "colossalchests:chest_wall_wood"
+					type: "item"
+				}
+			]
+			title: "Colossal Chests"
+			x: 8.5d
+			y: -3.0d
+		}
+	]
+	subtitle: ["Ex Nihilo Ad Omnia"]
+	title: "From Nothing"
+}
