@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -24,114 +25,112 @@ type QuestBook struct {
 	questMap map[string]*Quest
 	// chapterMap maps a chapter "path" to a chapter
 	chapterMap map[string]*Chapter
+	// groupMap maps a group "ID" to a group
+	groupMap map[string]*Group
+}
+
+func (q *QuestBook) loadGroups() error {
+	gp := filepath.Join(q.root, "quests", "chapter_groups.snbt")
+	f, err := os.Open(gp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	groups, err := scanGroups(f)
+	if err != nil {
+		return err
+	}
+	q.Groups = groups
+
+	groupMap := make(map[string]*Group)
+	for _, g := range q.Groups {
+		groupMap[g.ID] = g
+	}
+	q.groupMap = groupMap
+
+	return nil
+}
+
+func (q *QuestBook) loadChapters() error {
+	dir := filepath.Join(q.root, "quests", "chapters")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	var chapters []*Chapter
+	chapterMap := make(map[string]*Chapter)
+	for _, e := range entries {
+		// skip directories and non-snbt files
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".snbt") {
+			continue
+		}
+		c, err := NewChapterFromPath(filepath.Join(dir, e.Name()))
+		if err != nil {
+			return err
+		}
+		chapters = append(chapters, c)
+		chapterMap[c.Name] = c
+	}
+
+	q.Chapters = chapters
+	q.chapterMap = chapterMap
+	return nil
 }
 
 // NewQuestBook instantiates a questbook from a path.
-func NewQuestBook(path string) *QuestBook {
+func NewQuestBook(path string) (*QuestBook, error) {
 	qb := &QuestBook{
 		root:       path,
 		questMap:   make(map[string]*Quest),
 		chapterMap: make(map[string]*Chapter),
+		groupMap:   make(map[string]*Group),
 	}
 
 	// Load group definitions if present
-	var groupsOrder []Group
-	if f, err := os.Open(filepath.Join(path, "quests", "chapter_groups.snbt")); err == nil {
-		defer f.Close()
-		if gs, err := scanGroups(f); err == nil {
-			groupsOrder = gs
-		}
-	}
-	groupsByID := make(map[string]*Group)
-	unlistedOrder := make([]string, 0)
-	for _, g := range groupsOrder {
-		gcopy := g
-		groupsByID[g.ID] = &gcopy
+	if err := qb.loadGroups(); err != nil {
+		slog.Error("error loading chapter groups", "error", err)
+		return nil, err
 	}
 
-	// Scan chapters
-	chaptersDir := filepath.Join(path, "quests", "chapters")
-	entries, err := os.ReadDir(chaptersDir)
-	if err != nil {
-		// return empty questbook on error
-		return qb
+	if err := qb.loadChapters(); err != nil {
+		return nil, err
 	}
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".snbt") {
-			continue
-		}
-		name := strings.TrimSuffix(e.Name(), ".snbt")
-		fp := filepath.Join(chaptersDir, e.Name())
-		f, err := os.Open(fp)
-		if err != nil {
-			continue
-		}
-		v, err := snbt.Decode(f)
-		_ = f.Close()
-		if err != nil {
-			continue
-		}
-		rm, ok := v.(map[string]any)
-		if !ok {
-			continue
-		}
-		ch := NewChapterWithName(rm, name)
-		chp := &ch
-		qb.Chapters = append(qb.Chapters, chp)
-		qb.chapterMap[name] = chp
+
+	// add global accounting for quests and chapters
+	// XXX: should we order the chapters first?
+	for _, c := range qb.Chapters {
 		// collect quests and index by ID
-		for i := range chp.Quests {
-			q := &chp.Quests[i]
+		for _, q := range c.Quests {
 			qb.Quests = append(qb.Quests, q)
-			if q.ID != "" {
-				qb.questMap[q.ID] = q
-			}
+			qb.questMap[q.ID] = q
 		}
-		// assign chapter to group if specified
-		if chp.GroupID != "" {
-			gid := chp.GroupID
-			grp, ok := groupsByID[gid]
+
+		// add chapter to a group
+		if c.GroupID != "" {
+			g, ok := qb.groupMap[c.GroupID]
 			if !ok {
-				title := gid
-				groupsByID[gid] = &Group{ID: gid, Title: title}
-				grp = groupsByID[gid]
-				unlistedOrder = append(unlistedOrder, gid)
+				slog.Warn("unknown groupID in chapter", "groupID", c.GroupID, "chapter", c.Filename)
+				continue
 			}
-			grp.Chapters = append(grp.Chapters, *chp)
+			g.Chapters = append(g.Chapters, c)
 		}
 	}
 
-	// Build ordered groups slice
-	for _, g := range groupsOrder {
-		if grp, ok := groupsByID[g.ID]; ok {
-			sort.Slice(grp.Chapters, func(i, j int) bool {
-				if grp.Chapters[i].OrderIndex != grp.Chapters[j].OrderIndex {
-					return grp.Chapters[i].OrderIndex < grp.Chapters[j].OrderIndex
-				}
-				return grp.Chapters[i].Title < grp.Chapters[j].Title
-			})
-			if len(grp.Chapters) > 0 {
-				qb.Groups = append(qb.Groups, grp)
-			}
-			delete(groupsByID, g.ID)
-		}
-	}
-	// add remaining groups in encounter order
-	for _, gid := range unlistedOrder {
-		if grp, ok := groupsByID[gid]; ok {
-			sort.Slice(grp.Chapters, func(i, j int) bool {
-				if grp.Chapters[i].OrderIndex != grp.Chapters[j].OrderIndex {
-					return grp.Chapters[i].OrderIndex < grp.Chapters[j].OrderIndex
-				}
-				return grp.Chapters[i].Title < grp.Chapters[j].Title
-			})
-			qb.Groups = append(qb.Groups, grp)
-		}
+	// order the quests within each group
+	for _, g := range qb.Groups {
+		// XXX: original code checked for same ordering and then sorted by title but
+		// i don't think that's necessary or possible?
+		sort.Slice(g.Chapters, func(i, j int) bool {
+			return g.Chapters[i].OrderIndex < g.Chapters[j].OrderIndex
+		})
 	}
 
-	// Flat chapter sort by title (useful for callers)
+	// XXX: chapters could be sorted by their appearance in the quest book but
+	// that's a bit tricky
 	sort.Slice(qb.Chapters, func(i, j int) bool { return qb.Chapters[i].Title < qb.Chapters[j].Title })
-	return qb
+	return qb, nil
 }
 
 func (q *QuestBook) TopItems() []*TopItem {
@@ -209,24 +208,20 @@ func itemToString(v any) string {
 }
 
 // NewQuest creates a new Quest from a raw generic SNBT value.
-func NewQuest(raw any) *Quest {
-	q := QuestFromRaw(raw)
-	return &q
-}
-
-// QuestFromRaw constructs a Quest from a generic SNBT-decoded value.
-func QuestFromRaw(raw any) Quest {
-	q := Quest{Raw: raw}
+func NewQuest(raw any) (*Quest, error) {
 	rm, ok := raw.(map[string]any)
 	if !ok {
-		return q
+		return nil, fmt.Errorf("new quest expected compound, but got %T", rm)
 	}
 
 	m := M(rm)
-	q.ID = m.GetString("id")
-	q.Title = m.GetString("title")
-	q.Subtitle = m.GetString("subtitle")
-	q.Description = m.GetString("description")
+	q := &Quest{
+		Raw:         raw,
+		ID:          m.GetString("id"),
+		Title:       m.GetString("title"),
+		Subtitle:    m.GetString("subtitle"),
+		Description: m.GetString("description"),
+	}
 
 	// try multi-string version of description
 	if q.Description == "" {
@@ -234,7 +229,7 @@ func QuestFromRaw(raw any) Quest {
 		q.Description = strings.Join(ss, "\n")
 	}
 
-	return q
+	return q, nil
 }
 
 // Chapter models a quest chapter file.
@@ -252,11 +247,13 @@ type Chapter struct {
 	// Group and ordering
 	GroupID    string
 	OrderIndex int
-	// Quests as unmodeled items for now
-	Quests []Quest
+	Quests     []*Quest
+
 	// Raw retains the original decoded map for convenience
 	Raw map[string]any
 }
+
+// TODO: clean up the constructors of Chapter
 
 // NewChapter constructs a Chapter from a decoded SNBT map.
 // The caller should set Chapter.Name from the filename and may override Title
@@ -286,7 +283,12 @@ func NewChapter(rm map[string]any) Chapter {
 	ch.QuestLinks = m.GetAnys("quest_links")
 
 	for _, qv := range m.GetAnys("quests") {
-		ch.Quests = append(ch.Quests, QuestFromRaw(qv))
+		q, err := NewQuest(qv)
+		if err != nil {
+			slog.Error("error loading quest", "chapter", ch.Filename, "quest", qv)
+			continue
+		}
+		ch.Quests = append(ch.Quests, q)
 	}
 
 	return ch
@@ -303,11 +305,30 @@ func NewChapterWithName(m map[string]any, name string) Chapter {
 	return ch
 }
 
+func NewChapterFromPath(path string) (*Chapter, error) {
+	fallback := strings.TrimSuffix(filepath.Base(path), ".snbt")
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	v, err := snbt.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("chapter at %s: expected compound, got %T", path, v)
+	}
+	ch := NewChapterWithName(m, fallback)
+	return &ch, nil
+}
+
 // Group organizes chapters under a heading.
 type Group struct {
 	ID       string
 	Title    string
-	Chapters []Chapter
+	Chapters []*Chapter
 }
 
 type ItemType int
@@ -326,29 +347,30 @@ type TopItem struct {
 }
 
 // scanGroups decodes a chapter_groups.snbt stream and returns groups in file order.
-func scanGroups(r io.Reader) ([]Group, error) {
+func scanGroups(r io.Reader) ([]*Group, error) {
 	v, err := snbt.Decode(r)
 	if err != nil {
 		return nil, err
 	}
 	rm, ok := v.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("chapter_groups: not a compound")
+		return nil, fmt.Errorf("chapter_groups: expecting a compound, found %v", v)
 	}
-	m := M(rm)
 
+	m := M(rm)
 	arr := m.GetAnys("chapter_groups")
-	groups := make([]Group, 0, len(arr))
+	groups := make([]*Group, 0, len(arr))
 
 	for _, it := range arr {
-		if mm, ok := it.(map[string]any); ok {
-			id, _ := mm["id"].(string)
-			if id == "" {
-				continue
-			}
-			title, _ := mm["title"].(string)
-			groups = append(groups, Group{ID: id, Title: title})
+		mm, ok := it.(map[string]any)
+		if !ok {
+			continue
 		}
+		g := &Group{ID: M(mm).GetString("id"), Title: M(mm).GetString("title")}
+		if g.ID == "" {
+			continue
+		}
+		groups = append(groups, g)
 	}
 	return groups, nil
 }

@@ -45,7 +45,9 @@ var templatesFS embed.FS
 
 func New(root, mc string, verbose int) (*App, error) {
 	a := &App{Root: root, MCVersion: mc, Verbose: verbose}
-	a.QB = NewQuestBook(root)
+	// XXX: maybe if we error we still have the app UI visible?
+	a.QB, _ = NewQuestBook(root)
+
 	// Load templates from embedded FS
 	sub, _ := fs.Sub(templatesFS, "templates")
 	sh := sprout.New()
@@ -77,7 +79,7 @@ func New(root, mc string, verbose int) (*App, error) {
 }
 
 // reload questbook from disk
-func (a *App) reload() { a.QB = NewQuestBook(a.Root) }
+func (a *App) reload() { a.QB, _ = NewQuestBook(a.Root) }
 
 // scanGroups is defined in quests.go
 
@@ -279,8 +281,7 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		for _, ch := range a.QB.Chapters {
-			for j := range ch.Quests {
-				qs := &ch.Quests[j]
+			for _, qs := range ch.Quests {
 				if _, ok := idset[qs.ID]; ok {
 					matches = append(matches, QRef{Chapter: ch, Quest: qs})
 				}
@@ -291,8 +292,7 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 			if len(scope) > 0 && !scope[ch.Name] {
 				continue
 			}
-			for j := range ch.Quests {
-				qs := &ch.Quests[j]
+			for _, qs := range ch.Quests {
 				if noTitle && qs.Title != "" {
 					continue
 				}
@@ -645,8 +645,7 @@ func (a *App) colors(w http.ResponseWriter, r *http.Request) {
 		if len(scope) > 0 && !scope[ch.Name] {
 			continue
 		}
-		for j := range ch.Quests {
-			qs := &ch.Quests[j]
+		for _, qs := range ch.Quests {
 			ttl := qs.GetTitle()
 			process(ch.Name, qs.ID, ttl, qs.Title, "title", -1)
 			process(ch.Name, qs.ID, ttl, qs.Subtitle, "subtitle", -1)
@@ -707,8 +706,7 @@ func (a *App) colors(w http.ResponseWriter, r *http.Request) {
 		if len(scope) > 0 && !scope[ch.Name] {
 			continue
 		}
-		for j := range ch.Quests {
-			qs := &ch.Quests[j]
+		for _, qs := range ch.Quests {
 			if qh := hitsByQuest[qs.ID]; qh != nil {
 				seen := make(map[string]struct{})
 				compact := make([]TermHit, 0, len(qh.Hits))
@@ -787,10 +785,9 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 		idset[id] = struct{}{}
 	}
 	for _, ch := range a.QB.Chapters {
-		for j := range ch.Quests {
-			q := &ch.Quests[j]
-			if _, ok := idset[q.ID]; ok {
-				targets = append(targets, target{Chapter: ch.Name, ID: q.ID})
+		for _, qs := range ch.Quests {
+			if _, ok := idset[qs.ID]; ok {
+				targets = append(targets, target{Chapter: ch.Name, ID: qs.ID})
 			}
 		}
 	}
@@ -1197,26 +1194,22 @@ func recolorString(s, term string, color byte, ci bool) string {
 		return s
 	}
 	rs := []rune(s)
-	// Build stripped text, map to source indices, and track the index of the
-	// last color-setting code (the rune index of the code character after '&')
-	// that applies to each visible rune.
+	// Build stripped text and mappings
 	var stripped []rune
 	var srcIdx []int
-	var colorCodeIdxAt []int // -1 if no active color
+	var colorCodeIdxAt []int
 	lastColorIdx := -1
 	for i := 0; i < len(rs); i++ {
 		r := rs[i]
-		if r == '&' || r == '\u00A7' { // handle both styles
+		if r == '&' || r == '\u00A7' {
 			if i+1 < len(rs) {
 				code := rs[i+1]
-				switch {
-				case (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || (code >= 'A' && code <= 'F'):
-					// Normalize to lowercase a-f for consistency
+				if (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || (code >= 'A' && code <= 'F') {
 					if code >= 'A' && code <= 'F' {
 						code = code - 'A' + 'a'
 					}
-					lastColorIdx = i + 1 // index of the code character
-				case code == 'r' || code == 'R':
+					lastColorIdx = i + 1
+				} else if code == 'r' || code == 'R' {
 					lastColorIdx = -1
 				}
 				i++
@@ -1227,7 +1220,6 @@ func recolorString(s, term string, color byte, ci bool) string {
 		srcIdx = append(srcIdx, i)
 		colorCodeIdxAt = append(colorCodeIdxAt, lastColorIdx)
 	}
-
 	hay := string(stripped)
 	needle := term
 	if ci {
@@ -1237,20 +1229,23 @@ func recolorString(s, term string, color byte, ci bool) string {
 	if len(needle) == 0 || len(hay) < len(needle) {
 		return s
 	}
-
-	// Replace the code character for each match when a color is active
+	injectBefore := make(map[int]string)
+	injectAfter := make(map[int]string)
 	modified := false
 	for start := 0; start <= len(hay)-len(needle); {
 		idx := strings.Index(hay[start:], needle)
 		if idx < 0 {
 			break
 		}
-		pos := start + idx // position in stripped runes of first matched rune
-		if pos < len(colorCodeIdxAt) {
-			codeIdx := colorCodeIdxAt[pos]
-			if codeIdx >= 0 && codeIdx < len(rs) {
-				// Overwrite the existing color code with the new one
+		pos := start + idx
+		end := pos + len(needle) - 1
+		if pos < len(srcIdx) {
+			if codeIdx := colorCodeIdxAt[pos]; codeIdx >= 0 {
 				rs[codeIdx] = rune(color)
+				modified = true
+			} else {
+				injectBefore[srcIdx[pos]] = "&" + string(color)
+				injectAfter[srcIdx[end]] = "&r"
 				modified = true
 			}
 		}
@@ -1259,19 +1254,23 @@ func recolorString(s, term string, color byte, ci bool) string {
 	if !modified {
 		return s
 	}
-	return string(rs)
+	var out []rune
+	for i := 0; i < len(rs); i++ {
+		if code, ok := injectBefore[i]; ok {
+			out = append(out, []rune(code)...)
+		}
+		out = append(out, rs[i])
+		if code, ok := injectAfter[i]; ok {
+			out = append(out, []rune(code)...)
+		}
+	}
+	return string(out)
 }
 
 // chapterDetail handles GET "/chapter/{chapter}".
 func (a *App) chapterDetail(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "chapter")
-	var ch *Chapter
-	for _, c := range a.QB.Chapters {
-		if c.Name == name {
-			ch = c
-			break
-		}
-	}
+	ch, _ := a.QB.chapterMap[name]
 	if ch == nil {
 		http.NotFound(w, r)
 		return
@@ -1292,13 +1291,8 @@ func (a *App) errors(w http.ResponseWriter, r *http.Request) {
 // chapterRaw handles GET "/chapter/{chapter}/raw".
 func (a *App) chapterRaw(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "chapter")
-	var ch *Chapter
-	for _, c := range a.QB.Chapters {
-		if c.Name == name {
-			ch = c
-			break
-		}
-	}
+
+	ch, _ := a.QB.chapterMap[name]
 	if ch == nil {
 		http.NotFound(w, r)
 		return
@@ -1320,28 +1314,14 @@ func (a *App) chapterRaw(w http.ResponseWriter, r *http.Request) {
 func (a *App) questDetail(w http.ResponseWriter, r *http.Request) {
 	cname := chi.URLParam(r, "chapter")
 	qid := chi.URLParam(r, "quest")
-	var ch *Chapter
-	for _, c := range a.QB.Chapters {
-		if c.Name == cname {
-			ch = c
-			break
-		}
-	}
-	if ch == nil {
+
+	ch, _ := a.QB.chapterMap[cname]
+	q, _ := a.QB.questMap[qid]
+	if ch == nil || q == nil {
 		http.NotFound(w, r)
 		return
 	}
-	var q *Quest
-	for i := range ch.Quests {
-		if ch.Quests[i].ID == qid {
-			q = &ch.Quests[i]
-			break
-		}
-	}
-	if q == nil {
-		http.NotFound(w, r)
-		return
-	}
+
 	title := q.GetTitle()
 	if title == "" {
 		title = "Edit Quest"
