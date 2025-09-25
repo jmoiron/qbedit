@@ -62,3 +62,18 @@ button[type=submit], select { background: var(--selected-bg); color: var(--link)
 .save-status.saving { color: var(--muted); }
 .save-status.ok { color: #2e8b57; }
 .save-status.fail { color: #c0392b; }
+
+/* MC color swatch utility (moved from minecraft.css) */
+.mc-swatch { display: inline-block; width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 3px; vertical-align: middle; margin-right: 6px; }
+
+/* Recolor popup */
+.recolor-pop { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
+.recolor-head { margin-bottom: 6px; font-size: 12px; }
+.recolor-grid { display: grid; grid-template-columns: repeat(8, 20px); gap: 6px; }
+.recolor-choice { width: 18px; height: 18px; border: 2px solid transparent; cursor: pointer; }
+.recolor-current { border-color: #4da3ff; }
+
+/* Flash banner */
+.flash { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin: 8px 0; display: none; }
+.flash.ok { background: #eaf7f0; border-color: #2e8b57; color: #1e5e3b; }
+.flash.fail { background: #fdecea; border-color: #c0392b; color: #7a2119; }

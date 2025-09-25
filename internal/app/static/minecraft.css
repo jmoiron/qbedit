@@ -19,10 +19,28 @@
 .mc-ce { color: #FFFF55; } /* yellow */
 .mc-cf { color: #FFFFFF; } /* white */
 
+/* Background swatches using the same palette */
+.mc-b-c0 { background-color: #000000; }
+.mc-b-c1 { background-color: #0000AA; }
+.mc-b-c2 { background-color: #00AA00; }
+.mc-b-c3 { background-color: #00AAAA; }
+.mc-b-c4 { background-color: #AA0000; }
+.mc-b-c5 { background-color: #AA00AA; }
+.mc-b-c6 { background-color: #FFAA00; }
+.mc-b-c7 { background-color: #AAAAAA; }
+.mc-b-c8 { background-color: #555555; }
+.mc-b-c9 { background-color: #5555FF; }
+.mc-b-ca { background-color: #55FF55; }
+.mc-b-cb { background-color: #55FFFF; }
+.mc-b-cc { background-color: #FF5555; }
+.mc-b-cd { background-color: #FF55FF; }
+.mc-b-ce { background-color: #FFFF55; }
+.mc-b-cf { background-color: #FFFFFF; }
+
+
 /* Formats */
 .mc-bold { font-weight: bold; }
 .mc-italic { font-style: italic; }
 .mc-underline { text-decoration: underline; }
 .mc-strike { text-decoration: line-through; }
 .mc-obf { filter: blur(0.5px); }
-

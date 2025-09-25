@@ -1,0 +1,138 @@
+{{ define "colors.gohtml" }}
+  {{ template "layout_head" . }}
+  <h1><a href="/colors/">Color Manager</a></h1>
+  <div id="flash" class="flash" style="display:none;"></div>
+  <form method="GET" action="/colors/" class="batch-form" style="margin-bottom:12px;">
+    <div class="row">
+      <label class="label" for="cg">Chapter/Group</label>
+      <input type="text" id="cg" name="cg" list="cg-options" value="{{ index .Form "cg" }}" placeholder="Chapter or Group title" />
+      <datalist id="cg-options">
+        {{ range .CGOptions }}<option value="{{ . }}"></option>{{ end }}
+      </datalist>
+    </div>
+    <div class="row">
+      <label class="label" for="q">Search term</label>
+      <input type="text" id="q" name="q" value="{{ index .Form "q" }}" placeholder="Exact term (e.g., Gregtech)" />
+    </div>
+    <div class="row">
+      <label class="label">Options</label>
+      <label><input type="checkbox" name="ci" {{ if index .Form "ci" }}checked{{ end }} /> Case insensitive</label>
+    </div>
+    <div class="row">
+      <label class="label" for="n">Per page</label>
+      <select id="n" name="n">
+        {{ $n := index .Form "n" }}
+        <option value="5" {{ if eq $n 5 }}selected{{ end }}>5</option>
+        <option value="10" {{ if eq $n 10 }}selected{{ end }}>10</option>
+        <option value="20" {{ if eq $n 20 }}selected{{ end }}>20</option>
+      </select>
+      <button type="submit">Search</button>
+    </div>
+  </form>
+
+  {{ if .Term }}
+    {{ $res := .ColorResults }}
+    {{ if $res }}
+      <h2>Results for “{{ .Term }}”</h2>
+      <ul class="color-results">
+        {{ range $res }}
+          <li class="color-line" data-ids="{{ .IDs }}" data-term="{{ $.Term }}" data-ci="{{ if index $.Form "ci" }}1{{ else }}0{{ end }}" data-cur="{{ if .Code }}{{ printf "%c" (index .Code 1) }}{{ end }}">
+            <a href="#" class="js-recolor-open">
+              {{ if .Code }}<span class="mc-swatch mc-b-{{ .Code }}"></span>{{ else }}<span class="mc-swatch" style="background:transparent;"></span>{{ end }}
+              <span class="muted">{{ if .Code }}&{{ printf "%c" (index .Code 1) }}{{ else }}(none){{ end }}</span>
+            </a>
+            — <a href="/batch/edit?ids={{ .IDs }}&n={{ index $.Form "n" }}">{{ .Count }} occurrence{{ if ne .Count 1 }}s{{ end }}</a>
+          </li>
+        {{ end }}
+      </ul>
+      <div id="recolor-pop" class="recolor-pop" style="display:none;"></div>
+      {{ $qres := .QuestResults }}
+      {{ if $qres }}
+        <h3>By Quest</h3>
+        <ul class="color-results">
+          {{ range $qres }}
+            <li class="color-line" data-ids="{{ .QID }}" data-term="{{ $.Term }}" data-ci="{{ if index $.Form "ci" }}1{{ else }}0{{ end }}">
+              <a href="/chapter/{{ .Chapter }}/{{ .QID }}">{{ mc .Title }}</a>
+              —
+              {{ range .Hits }}
+                <a href="#" class="js-recolor-open" data-cur="{{ if .Code }}{{ printf "%c" (index .Code 1) }}{{ end }}" data-field="{{ .Field }}" data-didx="{{ .DIdx }}" data-pos="{{ .Pos }}" title="&{{ if .Code }}{{ printf "%c" (index .Code 1) }}{{ else }}?{{ end }}">
+                  {{ if .Code }}<span class="mc-swatch mc-b-{{ .Code }}"></span>{{ else }}<span class="mc-swatch" style="background:transparent;"></span>{{ end }}
+                  <span class="muted">{{ .Seg }}</span>
+                </a>
+              {{ end }}
+            </li>
+          {{ end }}
+        </ul>
+      {{ end }}
+      <script>
+        (function(){
+          var CODES = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'];
+          var $pop = $('#recolor-pop');
+          function closePop(){ $pop.hide().empty(); $(document).off('mousedown.recolor'); }
+          function openPop($line, anchor){
+            var cur = $(anchor).get(0) ? ($(anchor).attr('data-cur') || $line.attr('data-cur') || '') : ($line.attr('data-cur') || '');
+            var ids = $line.attr('data-ids') || '';
+            var term = $line.attr('data-term') || '';
+            var ci = $line.attr('data-ci') || '0';
+            var html = '<div class="recolor-head muted">Recolor all occurrences to:</div><div class="recolor-grid">';
+            CODES.forEach(function(c){
+              var cls = 'recolor-choice mc-swatch mc-b-c' + c + (cur===c?' recolor-current':'');
+              html += '<span class="'+cls+'" data-color="'+c+'" title="&'+c+'"></span>';
+            });
+            html += '</div>';
+            // Ensure the popup is positioned relative to the document, not a parent container.
+            if ($pop.parent().length === 0 || $pop.parent().get(0) !== document.body) {
+              $pop.appendTo(document.body);
+            }
+            $pop.html(html).show();
+            // position near anchor
+            var rect = anchor.getBoundingClientRect();
+            var top = rect.bottom + window.scrollY + 6;
+            var left = rect.left + window.scrollX;
+            $pop.css({ position:'absolute', top: top+'px', left: left+'px' });
+            // outside click closes
+            setTimeout(function(){
+              $(document).on('mousedown.recolor', function(e){ if (!$(e.target).closest('#recolor-pop,.js-recolor-open').length) closePop(); });
+            }, 0);
+            // handle click on a color
+            $pop.off('click').on('click', '.recolor-choice', function(){
+              var color = $(this).attr('data-color');
+              // If the anchor has per-hit data (field/pos), use single occurrence endpoint
+              var $anchor = $(anchor);
+              var field = $anchor.attr('data-field');
+              var pos = $anchor.attr('data-pos');
+              var didx = $anchor.attr('data-didx');
+              var url = '/colors/recolor';
+              var fd = new FormData();
+              if (field && pos) {
+                url = '/colors/recolor_one';
+                // Use single quest id (ids holds a single id for per-quest lines)
+                fd.append('qid', ids);
+                fd.append('field', field);
+                if (didx) fd.append('didx', didx);
+                fd.append('pos', pos);
+              } else {
+                fd.append('ids', ids);
+              }
+              fd.append('term', term);
+              fd.append('color', color);
+              fd.append('ci', ci);
+              fetch(url, { method:'POST', body: fd, headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r){ if(!r.ok) throw new Error('bad'); return r.json().catch(function(){ return {ok:false}; }); })
+                .then(function(j){ if(j && j.ok){ closePop(); window.location.reload(); } else { closePop(); window.showFlash && window.showFlash('Recolor failed', false); } })
+                .catch(function(){ closePop(); window.showFlash && window.showFlash('Recolor failed', false); });
+            });
+          }
+          $(document).on('click', '.js-recolor-open', function(e){ e.preventDefault(); openPop($(this).closest('.color-line'), this); });
+        })();
+      </script>
+      {{ if eq (len $res) 1 }}
+        <div class="muted">Only one color used for this term in the selected scope.</div>
+      {{ end }}
+    {{ else }}
+      <div class="muted">No occurrences found for this term in the selected scope.</div>
+    {{ end }}
+  {{ end }}
+
+  {{ template "layout_foot" . }}
+{{ end }}

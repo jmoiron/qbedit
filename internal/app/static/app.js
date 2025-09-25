@@ -1,5 +1,28 @@
 // Simple toggles using Cash (jQuery-compatible)
 $(function() {
+  // Flash banner utility available globally
+  (function(){
+    function ensureFlash(){
+      var el = document.getElementById('flash');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'flash';
+        el.className = 'flash';
+        el.style.display = 'none';
+        // insert near top of main content if available, else body
+        var main = document.querySelector('.main');
+        if (main) main.prepend(el); else document.body.prepend(el);
+      }
+      return $(el);
+    }
+    function showFlash(msg, ok){
+      var $f = ensureFlash();
+      $f.text(msg || '').removeClass('ok fail').addClass(ok ? 'ok' : 'fail').show();
+      setTimeout(function(){ $f.hide(); }, 5000);
+    }
+    window.showFlash = showFlash;
+  })();
+
   // Theme init
   function applyTheme(theme){
     var root = document.documentElement;

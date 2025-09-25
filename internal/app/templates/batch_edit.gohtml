@@ -27,7 +27,6 @@
           </form>
         </div>
         <div class="edit-right">
-          <div class="muted" style="margin-bottom:4px;">Live preview</div>
           <div class="q-preview">
             <h2 class="q-title" id="pv-title-{{ .Quest.ID }}"></h2>
             <div class="q-subtitle muted" id="pv-sub-{{ .Quest.ID }}" style="margin-top:4px;"></div>
@@ -60,11 +59,11 @@
     {{ $last := ceilDiv $total $pp }}
     <div class="pagination">
       {{ if gt $page 1 }}
-        <a class="page" href="/batch/edit?cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}&n={{ $pp }}&p={{ add $page -1 }}">Prev</a>
+        <a class="page" href="/batch/edit?{{ if index $qv "ids" }}ids={{ urlquery (index $qv "ids") }}{{ else }}cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}{{ end }}&n={{ $pp }}&p={{ add $page -1 }}">Prev</a>
       {{ end }}
       <span class="muted">Page {{ $page }} of {{ $last }}</span>
       {{ if lt $page $last }}
-        <a class="page" href="/batch/edit?cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}&n={{ $pp }}&p={{ add $page 1 }}">Next</a>
+        <a class="page" href="/batch/edit?{{ if index $qv "ids" }}ids={{ urlquery (index $qv "ids") }}{{ else }}cg={{ urlquery (index $qv "cg") }}&q={{ urlquery (index $qv "q") }}{{ if index $qv "no_title" }}&no_title=1{{ end }}{{ if index $qv "no_subtitle" }}&no_subtitle=1{{ end }}{{ if index $qv "no_desc" }}&no_desc=1{{ end }}{{ if index $qv "case" }}&case=1{{ end }}{{ end }}&n={{ $pp }}&p={{ add $page 1 }}">Next</a>
       {{ end }}
     </div>
   {{ end }}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -29,13 +28,8 @@ type App struct {
 	Root      string
 	MCVersion string
 	Verbose   int
-	Chapters  []Chapter
+	QB        *QuestBook
 	tpl       *template.Template
-	Parsed    int
-	Failed    int
-	Failures  []Failure
-	Groups    []Group
-	Top       []TopItem
 }
 
 type Failure struct {
@@ -51,9 +45,7 @@ var templatesFS embed.FS
 
 func New(root, mc string, verbose int) (*App, error) {
 	a := &App{Root: root, MCVersion: mc, Verbose: verbose}
-	if err := a.scan(); err != nil {
-		return nil, err
-	}
+	a.QB = NewQuestBook(root)
 	// Load templates from embedded FS
 	sub, _ := fs.Sub(templatesFS, "templates")
 	sh := sprout.New()
@@ -84,155 +76,8 @@ func New(root, mc string, verbose int) (*App, error) {
 	return a, nil
 }
 
-func (a *App) scan() error {
-	chaptersDir := filepath.Join(a.Root, "quests", "chapters")
-	entries, err := os.ReadDir(chaptersDir)
-	if err != nil {
-		return fmt.Errorf("read chapters dir: %w", err)
-	}
-	// Load group definitions
-	var groupsOrder []Group
-	if f, err := os.Open(filepath.Join(a.Root, "quests", "chapter_groups.snbt")); err == nil {
-		defer f.Close()
-		if gs, err := scanGroups(f); err == nil {
-			groupsOrder = gs
-		}
-	}
-	groupsByID := make(map[string]*Group)
-	// Track encounter order for any groups not listed in chapter_groups
-	unlistedOrder := make([]string, 0)
-	for _, g := range groupsOrder {
-		gcopy := g
-		groupsByID[g.ID] = &gcopy
-	}
-
-	var chapters []Chapter
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".snbt") {
-			continue
-		}
-		path := filepath.Join(chaptersDir, e.Name())
-		f, err := os.Open(path)
-		if err != nil {
-			log.Printf("scan open %s: %v", path, err)
-			a.Failed++
-			a.Failures = append(a.Failures, Failure{Name: e.Name(), Path: path, Err: err.Error()})
-			continue
-		}
-		v, err := snbt.Decode(f)
-		f.Close()
-		if err != nil {
-			log.Printf("decode %s: %v", path, err)
-			a.Failed++
-			a.Failures = append(a.Failures, Failure{Name: e.Name(), Path: path, Err: err.Error()})
-			continue
-		}
-		chapter := Chapter{Name: strings.TrimSuffix(e.Name(), ".snbt")}
-		if m, ok := v.(map[string]any); ok {
-			chapter.Raw = m
-			if id, ok := m["id"].(string); ok {
-				chapter.ID = id
-			}
-			if t, ok := m["title"].(string); ok {
-				chapter.Title = t
-			}
-			if fn, ok := m["filename"].(string); ok {
-				chapter.Filename = fn
-			}
-			if icon, ok := m["icon"].(string); ok {
-				chapter.Icon = icon
-			}
-			if gid, ok := m["group"].(string); ok {
-				chapter.GroupID = gid
-			}
-			if oi, ok := m["order_index"]; ok {
-				switch n := oi.(type) {
-				case int64:
-					chapter.OrderIndex = int(n)
-				case float64:
-					chapter.OrderIndex = int(n)
-				}
-			}
-			if sl, ok := m["subtitle"].([]any); ok {
-				subs := make([]string, 0, len(sl))
-				for _, v := range sl {
-					if s, ok := v.(string); ok {
-						subs = append(subs, s)
-					}
-				}
-				chapter.Subtitle = subs
-			}
-			if ql, ok := m["quest_links"].([]any); ok {
-				chapter.QuestLinks = ql
-			}
-			// Extract quests
-			if ql, ok := m["quests"].([]any); ok {
-				for _, qv := range ql {
-					chapter.Quests = append(chapter.Quests, QuestFromRaw(qv))
-				}
-			}
-		}
-		if chapter.Title == "" {
-			chapter.Title = chapter.Name
-		}
-		chapters = append(chapters, chapter)
-		// assign to group bucket
-		// Only assign to a group if the chapter declares one
-		if chapter.GroupID != "" {
-			gid := chapter.GroupID
-			grp, ok := groupsByID[gid]
-			if !ok {
-				// create placeholder group if not defined in chapter_groups
-				title := gid
-				groupsByID[gid] = &Group{ID: gid, Title: title}
-				grp = groupsByID[gid]
-				unlistedOrder = append(unlistedOrder, gid)
-			}
-			grp.Chapters = append(grp.Chapters, chapter)
-		}
-		a.Parsed++
-	}
-	// Build ordered groups slice
-	var groups []Group
-	// keep defined order first
-	for _, g := range groupsOrder {
-		if grp, ok := groupsByID[g.ID]; ok {
-			// sort chapters within group
-			sort.Slice(grp.Chapters, func(i, j int) bool {
-				if grp.Chapters[i].OrderIndex != grp.Chapters[j].OrderIndex {
-					return grp.Chapters[i].OrderIndex < grp.Chapters[j].OrderIndex
-				}
-				return grp.Chapters[i].Title < grp.Chapters[j].Title
-			})
-			if len(grp.Chapters) > 0 {
-				groups = append(groups, *grp)
-			}
-			delete(groupsByID, g.ID)
-		}
-	}
-	// add any remaining groups (not listed in chapter_groups) preserving encounter order
-	for _, gid := range unlistedOrder {
-		grp, ok := groupsByID[gid]
-		if !ok {
-			continue
-		}
-		sort.Slice(grp.Chapters, func(i, j int) bool {
-			if grp.Chapters[i].OrderIndex != grp.Chapters[j].OrderIndex {
-				return grp.Chapters[i].OrderIndex < grp.Chapters[j].OrderIndex
-			}
-			return grp.Chapters[i].Title < grp.Chapters[j].Title
-		})
-		groups = append(groups, *grp)
-	}
-	a.Groups = groups
-	// Keep flat list as well (sorted by title) if needed elsewhere
-	sort.Slice(chapters, func(i, j int) bool { return chapters[i].Title < chapters[j].Title })
-	a.Chapters = chapters
-
-	// Build top-level interleaved tree using helper
-	a.Top = buildTopItems(groups, chapters)
-	return nil
-}
+// reload questbook from disk
+func (a *App) reload() { a.QB = NewQuestBook(a.Root) }
 
 // scanGroups is defined in quests.go
 
@@ -253,6 +98,9 @@ func (a *App) Router() http.Handler {
 	r.Get("/", a.index)
 	r.Get("/batch/", a.batch)
 	r.Get("/batch/edit", a.batchEdit)
+	r.Get("/colors/", a.colors)
+	r.Post("/colors/recolor", a.colorsRecolor)
+	r.Post("/colors/recolor_one", a.colorsRecolorOne)
 	r.Get("/chapter/{chapter}", a.chapterDetail)
 	r.Get("/chapter/{chapter}/{quest}", a.questDetail)
 	r.Post("/chapter/{chapter}/{quest}/save", a.questSave)
@@ -282,15 +130,29 @@ func (a *App) baseData(r *http.Request, title string) map[string]any {
 	} else if c, err := r.Cookie("theme"); err == nil && c != nil && c.Value == "dark" {
 		themeDark = true
 	}
+	// Derive sidebar data from QuestBook
+	var chapters []Chapter
+	for _, cp := range a.QB.Chapters {
+		if cp != nil {
+			chapters = append(chapters, *cp)
+		}
+	}
+	var groups []Group
+	for _, gp := range a.QB.Groups {
+		if gp != nil {
+			groups = append(groups, *gp)
+		}
+	}
+	top := a.QB.TopItems()
 	return map[string]any{
-		"Chapters":    a.Chapters,
-		"Groups":      a.Groups,
-		"Top":         a.Top,
+		"Chapters":    chapters,
+		"Groups":      groups,
+		"Top":         top,
 		"MCVersion":   a.MCVersion,
 		"Title":       title,
-		"Parsed":      a.Parsed,
-		"Failed":      a.Failed,
-		"HasFailures": a.Failed > 0,
+		"Parsed":      len(a.QB.Chapters),
+		"Failed":      0,
+		"HasFailures": false,
 		"ThemeDark":   themeDark,
 	}
 }
@@ -329,12 +191,12 @@ func (a *App) batch(w http.ResponseWriter, r *http.Request) {
 	}
 	// Provide options for the Chapter/Group datalist
 	var cgOptions []string
-	for _, g := range a.Groups {
+	for _, g := range a.QB.Groups {
 		if g.Title != "" {
 			cgOptions = append(cgOptions, g.Title)
 		}
 	}
-	for _, ch := range a.Chapters {
+	for _, ch := range a.QB.Chapters {
 		if ch.Title != "" {
 			cgOptions = append(cgOptions, ch.Title)
 		}
@@ -355,6 +217,7 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 	noSubtitle := r.URL.Query().Has("no_subtitle")
 	noDesc := r.URL.Query().Has("no_desc")
 	caseSensitive := r.URL.Query().Has("case")
+	idsParam := strings.TrimSpace(r.URL.Query().Get("ids"))
 	perPage := 5
 	if n := strings.TrimSpace(r.URL.Query().Get("n")); n != "" {
 		switch n {
@@ -375,14 +238,14 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 	scope := make(map[string]bool)
 	if cg != "" {
 		lc := strings.ToLower(cg)
-		for _, g := range a.Groups {
+		for _, g := range a.QB.Groups {
 			if strings.Contains(strings.ToLower(g.Title), lc) || strings.EqualFold(g.ID, cg) {
 				for _, ch := range g.Chapters {
 					scope[ch.Name] = true
 				}
 			}
 		}
-		for _, ch := range a.Chapters {
+		for _, ch := range a.QB.Chapters {
 			if strings.Contains(strings.ToLower(ch.Title), lc) || strings.EqualFold(ch.Name, cg) {
 				scope[ch.Name] = true
 			}
@@ -395,29 +258,6 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 		Quest   *Quest
 	}
 	var matches []QRef
-	// Strip MC color/format codes (&x or §x), preserve case; lower later if needed.
-	stripCodes := func(s string) string {
-		if s == "" {
-			return s
-		}
-		if !strings.ContainsAny(s, "&§") {
-			return s
-		}
-		b := make([]rune, 0, len(s))
-		skip := false
-		for _, r := range s {
-			if skip {
-				skip = false
-				continue
-			}
-			if r == '&' || r == '§' {
-				skip = true
-				continue
-			}
-			b = append(b, r)
-		}
-		return string(b)
-	}
 	// A query matches when all query terms appear as substrings in any of the quest fields.
 	// Terms are whitespace-split.
 	terms := []string{}
@@ -430,47 +270,43 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 			terms = append(terms, p)
 		}
 	}
-	matchQuest := func(qs *Quest) bool {
-		if len(terms) == 0 {
-			return true
-		}
-		t1 := stripCodes(qs.Title)
-		t2 := stripCodes(qs.Subtitle)
-		t3 := stripCodes(qs.Description)
-		t4 := stripCodes(qs.GetTitle())
-		if !caseSensitive {
-			t1 = strings.ToLower(t1)
-			t2 = strings.ToLower(t2)
-			t3 = strings.ToLower(t3)
-			t4 = strings.ToLower(t4)
-		}
-		for _, term := range terms {
-			if !(strings.Contains(t1, term) || strings.Contains(t2, term) || strings.Contains(t3, term) || strings.Contains(t4, term)) {
-				return false
+	if idsParam != "" {
+		idset := make(map[string]struct{})
+		for _, s := range strings.Split(idsParam, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				idset[s] = struct{}{}
 			}
 		}
-		return true
-	}
-	for i := range a.Chapters {
-		ch := &a.Chapters[i]
-		if len(scope) > 0 && !scope[ch.Name] {
-			continue
+		for _, ch := range a.QB.Chapters {
+			for j := range ch.Quests {
+				qs := &ch.Quests[j]
+				if _, ok := idset[qs.ID]; ok {
+					matches = append(matches, QRef{Chapter: ch, Quest: qs})
+				}
+			}
 		}
-		for j := range ch.Quests {
-			qs := &ch.Quests[j]
-			if noTitle && qs.Title != "" {
+	} else {
+		for _, ch := range a.QB.Chapters {
+			if len(scope) > 0 && !scope[ch.Name] {
 				continue
 			}
-			if noSubtitle && qs.Subtitle != "" {
-				continue
+			for j := range ch.Quests {
+				qs := &ch.Quests[j]
+				if noTitle && qs.Title != "" {
+					continue
+				}
+				if noSubtitle && qs.Subtitle != "" {
+					continue
+				}
+				if noDesc && qs.Description != "" {
+					continue
+				}
+				if !matchQuest(qs, terms, caseSensitive) {
+					continue
+				}
+				matches = append(matches, QRef{Chapter: ch, Quest: qs})
 			}
-			if noDesc && qs.Description != "" {
-				continue
-			}
-			if !matchQuest(qs) {
-				continue
-			}
-			matches = append(matches, QRef{Chapter: ch, Quest: qs})
 		}
 	}
 	if len(matches) == 0 {
@@ -498,7 +334,7 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 		title := mr.Quest.GetTitle()
 		byChapter[mr.Chapter.Name] = append(byChapter[mr.Chapter.Name], SideQuest{ID: mr.Quest.ID, Title: title})
 	}
-	for _, g := range a.Groups {
+	for _, g := range a.QB.Groups {
 		var sc []SideChapter
 		for _, ch := range g.Chapters {
 			if qs, ok := byChapter[ch.Name]; ok && len(qs) > 0 {
@@ -512,7 +348,7 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(byChapter) > 0 {
 		var sc []SideChapter
-		for _, ch := range a.Chapters {
+		for _, ch := range a.QB.Chapters {
 			if ch.GroupID != "" {
 				continue
 			}
@@ -547,18 +383,892 @@ func (a *App) batchEdit(w http.ResponseWriter, r *http.Request) {
 		"cg": cg, "q": q,
 		"no_title": noTitle, "no_subtitle": noSubtitle, "no_desc": noDesc,
 		"case": caseSensitive,
+		"ids":  idsParam,
 		"n":    perPage,
 	}
 	a.render(w, "batch_edit.gohtml", data)
+}
+
+// colors handles GET "/colors/" — Color Manager base with an inconsistency finder.
+func (a *App) colors(w http.ResponseWriter, r *http.Request) {
+	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	cg := strings.TrimSpace(r.URL.Query().Get("cg"))
+	ci := r.URL.Query().Has("ci") // case-insensitive if present
+	// Per-page selector for visual consistency (not used for aggregation yet)
+	perPage := 5
+	if n := strings.TrimSpace(r.URL.Query().Get("n")); n != "" {
+		switch n {
+		case "10":
+			perPage = 10
+		case "20":
+			perPage = 20
+		}
+	}
+
+	data := a.baseData(r, "Color Manager")
+	// Datalist options
+	var cgOptions []string
+	for _, g := range a.QB.Groups {
+		if g.Title != "" {
+			cgOptions = append(cgOptions, g.Title)
+		}
+	}
+	for _, ch := range a.QB.Chapters {
+		if ch.Title != "" {
+			cgOptions = append(cgOptions, ch.Title)
+		}
+	}
+	data["CGOptions"] = cgOptions
+	data["Form"] = map[string]any{"cg": cg, "q": term, "ci": ci, "n": perPage}
+
+	if term == "" {
+		a.render(w, "colors.gohtml", data)
+		return
+	}
+
+	// Scope selection
+	scope := make(map[string]bool)
+	if cg != "" {
+		lc := strings.ToLower(cg)
+		for _, g := range a.QB.Groups {
+			if strings.Contains(strings.ToLower(g.Title), lc) || strings.EqualFold(g.ID, cg) {
+				for _, ch := range g.Chapters {
+					scope[ch.Name] = true
+				}
+			}
+		}
+		for _, ch := range a.QB.Chapters {
+			if strings.Contains(strings.ToLower(ch.Title), lc) || strings.EqualFold(ch.Name, cg) {
+				scope[ch.Name] = true
+			}
+		}
+	}
+
+	// Normalization
+	matchTerm := term
+	if ci {
+		matchTerm = strings.ToLower(term)
+	}
+
+	// Count colors and capture quest ids for linking
+	counts := make(map[string]int)                     // code -> count (code like "c6", "ca", empty for none)
+	idsByColor := make(map[string]map[string]struct{}) // code -> set of quest IDs
+	// Per-quest aggregated matches with highlighted segment text
+	type TermHit struct {
+		Code  string
+		Seg   string
+		Field string // title|subtitle|description
+		DIdx  int    // description line index if Field==description; else -1
+		Pos   int    // match position (visible rune index)
+	}
+	type QuestHit struct {
+		Chapter, QID, Title string
+		Hits                []TermHit
+	}
+	hitsByQuest := make(map[string]*QuestHit)
+	process := func(chapter, qid, qtitle, s string, field string, didx int) {
+		if s == "" {
+			return
+		}
+		cur := ""
+		var stripped []rune
+		var colors []string
+		var srcIdx []int
+		rs := []rune(s)
+		i := 0
+		for i < len(rs) {
+			rch := rs[i]
+			if rch == '&' || rch == '\u00A7' {
+				if i+1 < len(rs) {
+					code := rs[i+1]
+					if (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || (code >= 'A' && code <= 'F') {
+						if code >= 'A' && code <= 'F' {
+							code = code - 'A' + 'a'
+						}
+						cur = "c" + string(code)
+					} else if code == 'r' || code == 'R' {
+						cur = ""
+					}
+					i += 2
+					continue
+				}
+			}
+			stripped = append(stripped, rch)
+			colors = append(colors, cur)
+			srcIdx = append(srcIdx, i)
+			i++
+		}
+		text := string(stripped)
+		hay := text
+		needle := matchTerm
+		if ci {
+			hay = strings.ToLower(text)
+		}
+		if len(needle) == 0 {
+			return
+		}
+		start := 0
+		for start <= len(hay)-len(needle) {
+			idx := strings.Index(hay[start:], needle)
+			if idx < 0 {
+				break
+			}
+			pos := start + idx
+			if pos < len(colors) {
+				c := colors[pos]
+				counts[c]++
+				if idsByColor[c] == nil {
+					idsByColor[c] = make(map[string]struct{})
+				}
+				idsByColor[c][qid] = struct{}{}
+				// Build highlighted segment:
+				// - If a color code is active at the match, capture text between the
+				//   prior color code and the next code (original behavior).
+				// - If no color code is active, capture surrounding context: ~3 words
+				//   on either side from the stripped text.
+				var seg string
+				if c != "" {
+					src := srcIdx[pos]
+					// previous '&' that begins a code
+					prev := -1
+					for p := src; p >= 0; p-- {
+						if rs[p] == '&' || rs[p] == '\u00A7' {
+							if p+1 < len(rs) {
+								cc := rs[p+1]
+								if (cc >= '0' && cc <= '9') || (cc >= 'a' && cc <= 'f') || (cc >= 'A' && cc <= 'F') || cc == 'r' || cc == 'R' {
+									prev = p
+									break
+								}
+							}
+						}
+					}
+					// next '&' occurrence
+					next := len(rs)
+					for q := src + 1; q < len(rs); q++ {
+						if rs[q] == '&' || rs[q] == '\u00A7' {
+							next = q
+							break
+						}
+					}
+					// Extract visible characters excluding codes
+					var vis []rune
+					startVis := src
+					if prev >= 0 {
+						startVis = prev + 2
+					}
+					for q := startVis; q < next && q < len(rs); q++ {
+						if rs[q] == '&' || rs[q] == '\u00A7' {
+							q++
+							continue
+						}
+						vis = append(vis, rs[q])
+					}
+					seg = string(vis)
+				} else {
+					// No active color: include ~3 words of context on either side from stripped text
+					// Work with the original-cased stripped text (text) while using indexes from hay.
+					// Helper to detect simple whitespace.
+					isSpace := func(b byte) bool { return b == ' ' || b == '\t' || b == '\n' || b == '\r' }
+					bt := []byte(text)
+					// Determine the corresponding start index in 'text' for this match
+					// pos refers to index in 'hay'; for ASCII it aligns with 'text'.
+					left := pos
+					// Move left over up to 3 words
+					words := 0
+					for left > 0 && words < 3 {
+						// skip any spaces immediately to the left
+						for left > 0 && isSpace(bt[left-1]) {
+							left--
+						}
+						// scan left through the previous word
+						saw := false
+						for left > 0 && !isSpace(bt[left-1]) {
+							left--
+							saw = true
+						}
+						if saw {
+							words++
+						} else {
+							break
+						}
+					}
+					// Right bound starting after the needle
+					right := pos + len(needle)
+					words = 0
+					for right < len(bt) && words < 3 {
+						// skip spaces to the right
+						for right < len(bt) && isSpace(bt[right]) {
+							right++
+						}
+						// scan through next word
+						saw := false
+						for right < len(bt) && !isSpace(bt[right]) {
+							right++
+							saw = true
+						}
+						if saw {
+							words++
+						} else {
+							break
+						}
+					}
+					if left < 0 {
+						left = 0
+					}
+					if right > len(bt) {
+						right = len(bt)
+					}
+					// Add ellipses only when context is truncated on that side
+					prefix := left > 0
+					suffix := right < len(bt)
+					segStr := strings.TrimSpace(string(bt[left:right]))
+					if prefix {
+						segStr = "…" + segStr
+					}
+					if suffix {
+						segStr = segStr + "…"
+					}
+					seg = segStr
+				}
+				qh := hitsByQuest[qid]
+				if qh == nil {
+					qh = &QuestHit{Chapter: chapter, QID: qid, Title: qtitle}
+					hitsByQuest[qid] = qh
+				}
+				qh.Hits = append(qh.Hits, TermHit{Code: c, Seg: seg, Field: field, DIdx: didx, Pos: pos})
+			}
+			start = pos + len(needle)
+		}
+	}
+
+	for _, ch := range a.QB.Chapters {
+		if len(scope) > 0 && !scope[ch.Name] {
+			continue
+		}
+		for j := range ch.Quests {
+			qs := &ch.Quests[j]
+			ttl := qs.GetTitle()
+			process(ch.Name, qs.ID, ttl, qs.Title, "title", -1)
+			process(ch.Name, qs.ID, ttl, qs.Subtitle, "subtitle", -1)
+			// Handle description per raw line when available for precise targeting
+			if qm, ok := qs.Raw.(map[string]any); ok {
+				if dl, ok := qm["description"].([]any); ok {
+					for di := range dl {
+						if s, ok := dl[di].(string); ok {
+							process(ch.Name, qs.ID, ttl, s, "description", di)
+						}
+					}
+				} else if s, ok := qm["description"].(string); ok {
+					process(ch.Name, qs.ID, ttl, s, "description", -1)
+				} else {
+					// fallback to joined string held in struct
+					if qs.Description != "" {
+						process(ch.Name, qs.ID, ttl, qs.Description, "description", -1)
+					}
+				}
+			} else {
+				if qs.Description != "" {
+					process(ch.Name, qs.ID, ttl, qs.Description, "description", -1)
+				}
+			}
+		}
+	}
+
+	type ColorCount struct {
+		Code  string
+		Count int
+		IDs   string
+	}
+	var res []ColorCount
+	for code, n := range counts {
+		// Flatten ids in chapter order
+		var ids []string
+		if set := idsByColor[code]; set != nil {
+			for _, ch := range a.QB.Chapters {
+				for j := range ch.Quests {
+					if _, ok := set[ch.Quests[j].ID]; ok {
+						ids = append(ids, ch.Quests[j].ID)
+					}
+				}
+			}
+		}
+		res = append(res, ColorCount{Code: code, Count: n, IDs: strings.Join(ids, ",")})
+	}
+	sort.Slice(res, func(i, j int) bool { return res[i].Count > res[j].Count })
+	data["ColorResults"] = res
+	data["Term"] = term
+	// Build ordered per-quest results (one line per quest, dedup hits per quest)
+	type QuestLine struct {
+		Chapter, QID, Title string
+		Hits                []TermHit
+	}
+	var qlines []QuestLine
+	for _, ch := range a.QB.Chapters {
+		if len(scope) > 0 && !scope[ch.Name] {
+			continue
+		}
+		for j := range ch.Quests {
+			qs := &ch.Quests[j]
+			if qh := hitsByQuest[qs.ID]; qh != nil {
+				seen := make(map[string]struct{})
+				compact := make([]TermHit, 0, len(qh.Hits))
+				for _, h := range qh.Hits {
+					key := h.Field + "#" + strconv.Itoa(h.DIdx) + "#" + strconv.Itoa(h.Pos) + "#" + h.Code + "\x00" + h.Seg
+					if _, ok := seen[key]; ok {
+						continue
+					}
+					seen[key] = struct{}{}
+					compact = append(compact, h)
+				}
+				qlines = append(qlines, QuestLine{Chapter: qh.Chapter, QID: qh.QID, Title: qh.Title, Hits: compact})
+			}
+		}
+	}
+	data["QuestResults"] = qlines
+	a.render(w, "colors.gohtml", data)
+}
+
+// colorsRecolor handles POST /colors/recolor. It applies a color code to all
+// occurrences of a term within the specified quest IDs, then rescans data.
+func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
+	isAjax := strings.Contains(r.Header.Get("Accept"), "application/json") || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
+	writeJSON := func(code int, v any) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(code)
+		_ = json.NewEncoder(w).Encode(v)
+	}
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err2 := r.ParseForm(); err2 != nil {
+			if isAjax {
+				writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid form"})
+				return
+			}
+			http.Error(w, "invalid form", http.StatusBadRequest)
+			return
+		}
+	}
+	term := strings.TrimSpace(r.Form.Get("term"))
+	idsParam := strings.TrimSpace(r.Form.Get("ids"))
+	color := strings.TrimSpace(r.Form.Get("color"))
+	ci := r.Form.Get("ci") == "1" || strings.EqualFold(r.Form.Get("ci"), "true")
+	if term == "" || idsParam == "" || len(color) != 1 {
+		if isAjax {
+			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "missing term/ids/color"})
+			return
+		}
+		http.Error(w, "missing term/ids/color", http.StatusBadRequest)
+		return
+	}
+	c := color[0]
+	if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+		if isAjax {
+			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid color"})
+			return
+		}
+		http.Error(w, "invalid color", http.StatusBadRequest)
+		return
+	}
+	if c >= 'A' && c <= 'F' {
+		c = c - 'A' + 'a'
+	}
+
+	// Build index questID -> chapter name
+	type target struct {
+		Chapter string
+		ID      string
+	}
+	idset := make(map[string]struct{})
+	var targets []target
+	for _, id := range strings.Split(idsParam, ",") {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		idset[id] = struct{}{}
+	}
+	for _, ch := range a.QB.Chapters {
+		for j := range ch.Quests {
+			q := &ch.Quests[j]
+			if _, ok := idset[q.ID]; ok {
+				targets = append(targets, target{Chapter: ch.Name, ID: q.ID})
+			}
+		}
+	}
+	if len(targets) == 0 {
+		if isAjax {
+			writeJSON(http.StatusNotFound, map[string]any{"ok": false, "error": "no matching quests"})
+			return
+		}
+		http.Error(w, "no matching quests", http.StatusNotFound)
+		return
+	}
+
+	// Group targets by chapter and update files
+	byChapter := make(map[string]map[string]struct{})
+	for _, t := range targets {
+		if byChapter[t.Chapter] == nil {
+			byChapter[t.Chapter] = make(map[string]struct{})
+		}
+		byChapter[t.Chapter][t.ID] = struct{}{}
+	}
+
+	for cname, qids := range byChapter {
+		path := filepath.Join(a.Root, "quests", "chapters", cname+".snbt")
+		f, err := os.Open(path)
+		if err != nil {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+				return
+			}
+			http.Error(w, "open: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		v, err := snbt.Decode(f)
+		f.Close()
+		if err != nil {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+				return
+			}
+			http.Error(w, "decode: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		m, ok := v.(map[string]any)
+		if !ok {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter not a compound"})
+				return
+			}
+			http.Error(w, "chapter not a compound", http.StatusInternalServerError)
+			return
+		}
+		arr, ok := m["quests"].([]any)
+		if !ok {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter missing quests"})
+				return
+			}
+			http.Error(w, "chapter missing quests", http.StatusInternalServerError)
+			return
+		}
+		// update any matching quests
+		for i := range arr {
+			qm, ok := arr[i].(map[string]any)
+			if !ok {
+				continue
+			}
+			id, _ := qm["id"].(string)
+			if _, ok := qids[id]; !ok {
+				continue
+			}
+			// fields: title, subtitle, description (list of strings or string)
+			if s, ok := qm["title"].(string); ok {
+				qm["title"] = recolorString(s, term, c, ci)
+			}
+			if s, ok := qm["subtitle"].(string); ok {
+				qm["subtitle"] = recolorString(s, term, c, ci)
+			}
+			if dl, ok := qm["description"].([]any); ok {
+				for j := range dl {
+					if s, ok2 := dl[j].(string); ok2 {
+						dl[j] = recolorString(s, term, c, ci)
+					}
+				}
+				qm["description"] = dl
+			} else if s, ok := qm["description"].(string); ok {
+				qm["description"] = recolorString(s, term, c, ci)
+			}
+			arr[i] = qm
+		}
+		m["quests"] = arr
+		var buf bytes.Buffer
+		if err := snbt.Encode(&buf, m); err != nil {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+				return
+			}
+			http.Error(w, "encode: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
+			if isAjax {
+				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+				return
+			}
+			http.Error(w, "write: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// refresh in-memory data
+	a.reload()
+	if isAjax {
+		writeJSON(http.StatusOK, map[string]any{"ok": true})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// colorsRecolorOne handles POST /colors/recolor_one to recolor a single occurrence
+// of a term in a specific quest field.
+func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
+	isAjax := strings.Contains(r.Header.Get("Accept"), "application/json") || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
+	writeJSON := func(code int, v any) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(code)
+		_ = json.NewEncoder(w).Encode(v)
+	}
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err2 := r.ParseForm(); err2 != nil {
+			if isAjax {
+				writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid form"})
+				return
+			}
+			http.Error(w, "invalid form", http.StatusBadRequest)
+			return
+		}
+	}
+	qid := strings.TrimSpace(r.Form.Get("qid"))
+	term := strings.TrimSpace(r.Form.Get("term"))
+	field := strings.TrimSpace(r.Form.Get("field")) // title|subtitle|description
+	didxStr := strings.TrimSpace(r.Form.Get("didx"))
+	posStr := strings.TrimSpace(r.Form.Get("pos"))
+	color := strings.TrimSpace(r.Form.Get("color"))
+	ci := r.Form.Get("ci") == "1" || strings.EqualFold(r.Form.Get("ci"), "true")
+	if qid == "" || term == "" || field == "" || posStr == "" || len(color) != 1 {
+		if isAjax {
+			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "missing params"})
+			return
+		}
+		http.Error(w, "missing params", http.StatusBadRequest)
+		return
+	}
+	c := color[0]
+	if c >= 'A' && c <= 'F' {
+		c = c - 'A' + 'a'
+	}
+	if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		if isAjax {
+			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid color"})
+			return
+		}
+		http.Error(w, "invalid color", http.StatusBadRequest)
+		return
+	}
+	didx := -1
+	if didxStr != "" {
+		if n, err := strconv.Atoi(didxStr); err == nil {
+			didx = n
+		}
+	}
+	pos, err := strconv.Atoi(posStr)
+	if err != nil {
+		if isAjax {
+			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "bad pos"})
+			return
+		}
+		http.Error(w, "bad pos", http.StatusBadRequest)
+		return
+	}
+
+	// locate quest and chapter
+	var ch *Chapter
+	for _, c := range a.QB.Chapters {
+		for j := range c.Quests {
+			if c.Quests[j].ID == qid {
+				ch = c
+				break
+			}
+		}
+		if ch != nil {
+			break
+		}
+	}
+	if ch == nil {
+		if isAjax {
+			writeJSON(http.StatusNotFound, map[string]any{"ok": false, "error": "quest not found"})
+			return
+		}
+		http.Error(w, "quest not found", http.StatusNotFound)
+		return
+	}
+
+	path := filepath.Join(a.Root, "quests", "chapters", ch.Name+".snbt")
+	f, err := os.Open(path)
+	if err != nil {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		http.Error(w, "open: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	v, err := snbt.Decode(f)
+	f.Close()
+	if err != nil {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		http.Error(w, "decode: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter not a compound"})
+			return
+		}
+		http.Error(w, "chapter not a compound", http.StatusInternalServerError)
+		return
+	}
+	arr, ok := m["quests"].([]any)
+	if !ok {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter missing quests"})
+			return
+		}
+		http.Error(w, "chapter missing quests", http.StatusInternalServerError)
+		return
+	}
+
+	// update one quest/field occurrence
+	for i := range arr {
+		qm, ok := arr[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		if id, _ := qm["id"].(string); id != qid {
+			continue
+		}
+		// helper to update a string field in qm
+		updateField := func(key string, s string) {
+			if s == "" {
+				return
+			}
+			qm[key] = recolorOne(s, term, c, ci, pos)
+		}
+		switch field {
+		case "title":
+			if s, ok := qm["title"].(string); ok {
+				updateField("title", s)
+			}
+		case "subtitle":
+			if s, ok := qm["subtitle"].(string); ok {
+				updateField("subtitle", s)
+			}
+		case "description":
+			if dl, ok := qm["description"].([]any); ok {
+				// Operate across the joined string; but apply to the one line where the match was detected if didx >= 0
+				if didx >= 0 && didx < len(dl) {
+					if s, ok := dl[didx].(string); ok {
+						dl[didx] = recolorOne(s, term, c, ci, pos)
+					}
+					qm["description"] = dl
+				} else {
+					// fallback: join all lines and operate once (rare)
+					// Not ideal, but keeps behavior consistent if we didn't track didx
+				}
+			} else if s, ok := qm["description"].(string); ok {
+				updateField("description", s)
+			}
+		}
+		arr[i] = qm
+		break
+	}
+	m["quests"] = arr
+	var buf bytes.Buffer
+	if err := snbt.Encode(&buf, m); err != nil {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		http.Error(w, "encode: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
+		if isAjax {
+			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		http.Error(w, "write: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	a.reload()
+	if isAjax {
+		writeJSON(http.StatusOK, map[string]any{"ok": true})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// recolorOne modifies only the specific match at targetPos (in stripped text index).
+// If a color is active for that match, it replaces the color code as in recolorString.
+// If no color is active, wraps the term in &<color> and &r.
+func recolorOne(s, term string, color byte, ci bool, targetPos int) string {
+	if s == "" || term == "" {
+		return s
+	}
+	rs := []rune(s)
+	var stripped []rune
+	var colorsAt []string
+	var srcIdx []int
+	var codeIdxAt []int // index of color code char after '&' if active
+	cur := ""
+	lastCodeIdx := -1
+	for i := 0; i < len(rs); i++ {
+		r := rs[i]
+		if r == '&' || r == '\u00A7' {
+			if i+1 < len(rs) {
+				code := rs[i+1]
+				if (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || (code >= 'A' && code <= 'F') {
+					if code >= 'A' && code <= 'F' {
+						code = code - 'A' + 'a'
+					}
+					cur = "c" + string(code)
+					lastCodeIdx = i + 1
+				} else if code == 'r' || code == 'R' {
+					cur = ""
+					lastCodeIdx = -1
+				}
+				i++
+				continue
+			}
+		}
+		stripped = append(stripped, r)
+		colorsAt = append(colorsAt, cur)
+		srcIdx = append(srcIdx, i)
+		codeIdxAt = append(codeIdxAt, lastCodeIdx)
+	}
+	hay := string(stripped)
+	needle := term
+	if ci {
+		hay = strings.ToLower(hay)
+		needle = strings.ToLower(term)
+	}
+	if len(needle) == 0 || len(hay) < len(needle) {
+		return s
+	}
+	start := 0
+	for start <= len(hay)-len(needle) {
+		idx := strings.Index(hay[start:], needle)
+		if idx < 0 {
+			break
+		}
+		pos := start + idx
+		if pos == targetPos {
+			// perform change
+			if colorsAt[pos] != "" {
+				// replace existing color code
+				codeIdx := codeIdxAt[pos]
+				if codeIdx >= 0 && codeIdx < len(rs) {
+					rs[codeIdx] = rune(color)
+				}
+				return string(rs)
+			}
+			// no active color: wrap the term only
+			startSrc := srcIdx[pos]
+			endSrc := srcIdx[pos+len(needle)-1]
+			injectBefore := map[int]string{startSrc: "&" + string(color)}
+			injectAfter := map[int]string{endSrc: "&r"}
+			var out []rune
+			for i := 0; i < len(rs); i++ {
+				if code, ok := injectBefore[i]; ok {
+					out = append(out, []rune(code)...)
+				}
+				out = append(out, rs[i])
+				if code, ok := injectAfter[i]; ok {
+					out = append(out, []rune(code)...)
+				}
+			}
+			return string(out)
+		}
+		start = pos + len(needle)
+	}
+	return s
+}
+
+// recolorString replaces the color code that applies to each occurrence of term
+// with the new color. It does not insert surrounding color/reset codes.
+// If no color code is active for a matched term, the string is left unchanged
+// for that occurrence (to avoid coloring unintended spans).
+func recolorString(s, term string, color byte, ci bool) string {
+	if s == "" || term == "" {
+		return s
+	}
+	rs := []rune(s)
+	// Build stripped text, map to source indices, and track the index of the
+	// last color-setting code (the rune index of the code character after '&')
+	// that applies to each visible rune.
+	var stripped []rune
+	var srcIdx []int
+	var colorCodeIdxAt []int // -1 if no active color
+	lastColorIdx := -1
+	for i := 0; i < len(rs); i++ {
+		r := rs[i]
+		if r == '&' || r == '\u00A7' { // handle both styles
+			if i+1 < len(rs) {
+				code := rs[i+1]
+				switch {
+				case (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || (code >= 'A' && code <= 'F'):
+					// Normalize to lowercase a-f for consistency
+					if code >= 'A' && code <= 'F' {
+						code = code - 'A' + 'a'
+					}
+					lastColorIdx = i + 1 // index of the code character
+				case code == 'r' || code == 'R':
+					lastColorIdx = -1
+				}
+				i++
+				continue
+			}
+		}
+		stripped = append(stripped, r)
+		srcIdx = append(srcIdx, i)
+		colorCodeIdxAt = append(colorCodeIdxAt, lastColorIdx)
+	}
+
+	hay := string(stripped)
+	needle := term
+	if ci {
+		hay = strings.ToLower(hay)
+		needle = strings.ToLower(term)
+	}
+	if len(needle) == 0 || len(hay) < len(needle) {
+		return s
+	}
+
+	// Replace the code character for each match when a color is active
+	modified := false
+	for start := 0; start <= len(hay)-len(needle); {
+		idx := strings.Index(hay[start:], needle)
+		if idx < 0 {
+			break
+		}
+		pos := start + idx // position in stripped runes of first matched rune
+		if pos < len(colorCodeIdxAt) {
+			codeIdx := colorCodeIdxAt[pos]
+			if codeIdx >= 0 && codeIdx < len(rs) {
+				// Overwrite the existing color code with the new one
+				rs[codeIdx] = rune(color)
+				modified = true
+			}
+		}
+		start = pos + len(needle)
+	}
+	if !modified {
+		return s
+	}
+	return string(rs)
 }
 
 // chapterDetail handles GET "/chapter/{chapter}".
 func (a *App) chapterDetail(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "chapter")
 	var ch *Chapter
-	for i := range a.Chapters {
-		if a.Chapters[i].Name == name {
-			ch = &a.Chapters[i]
+	for _, c := range a.QB.Chapters {
+		if c.Name == name {
+			ch = c
 			break
 		}
 	}
@@ -575,7 +1285,7 @@ func (a *App) chapterDetail(w http.ResponseWriter, r *http.Request) {
 // errors handles GET "/errors".
 func (a *App) errors(w http.ResponseWriter, r *http.Request) {
 	data := a.baseData(r, "Errors")
-	data["Failures"] = a.Failures
+	data["Failures"] = nil
 	a.render(w, "errors.gohtml", data)
 }
 
@@ -583,9 +1293,9 @@ func (a *App) errors(w http.ResponseWriter, r *http.Request) {
 func (a *App) chapterRaw(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "chapter")
 	var ch *Chapter
-	for i := range a.Chapters {
-		if a.Chapters[i].Name == name {
-			ch = &a.Chapters[i]
+	for _, c := range a.QB.Chapters {
+		if c.Name == name {
+			ch = c
 			break
 		}
 	}
@@ -611,9 +1321,9 @@ func (a *App) questDetail(w http.ResponseWriter, r *http.Request) {
 	cname := chi.URLParam(r, "chapter")
 	qid := chi.URLParam(r, "quest")
 	var ch *Chapter
-	for i := range a.Chapters {
-		if a.Chapters[i].Name == cname {
-			ch = &a.Chapters[i]
+	for _, c := range a.QB.Chapters {
+		if c.Name == cname {
+			ch = c
 			break
 		}
 	}
@@ -770,9 +1480,7 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Refresh in-memory data
-	if err := a.scan(); err != nil {
-		log.Printf("rescan error: %v", err)
-	}
+	a.reload()
 	if isAjax {
 		writeJSON(http.StatusOK, map[string]any{"ok": true})
 		return

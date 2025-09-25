@@ -75,11 +75,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("init: %v", err)
 	}
-	log.Printf("scan summary: %d parsed, %d failed", a.Parsed, a.Failed)
-	if quit {
-		log.Printf("initialized successfully; loaded %d chapters; quitting (--quit)", len(a.Chapters))
-		return
-	}
+    log.Printf("scan summary: %d parsed, %d failed", len(a.QB.Chapters), 0)
+    if quit {
+        log.Printf("initialized successfully; loaded %d chapters; quitting (--quit)", len(a.QB.Chapters))
+        return
+    }
 	log.Printf("listening on http://%s (mc %s)", listen, mcVersion)
 	if err := httpListenAndServe(listen, a.Router()); err != nil {
 		log.Fatalf("server: %v", err)
