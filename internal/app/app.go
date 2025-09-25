@@ -1420,6 +1420,8 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 				if len(dlines) > 0 {
 					dl := make([]any, 0, len(dlines))
 					for _, s := range dlines {
+						// Strip any carriage returns from Windows CRLF
+						s = strings.TrimRight(s, "\r")
 						dl = append(dl, s)
 					}
 					qm["description"] = dl
