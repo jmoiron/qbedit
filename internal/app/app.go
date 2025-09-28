@@ -651,22 +651,17 @@ func (a *App) colors(w http.ResponseWriter, r *http.Request) {
 			process(ch.Name, qs.ID, ttl, qs.Title, "title", -1)
 			process(ch.Name, qs.ID, ttl, qs.Subtitle, "subtitle", -1)
 			// Handle description per raw line when available for precise targeting
-			if qm, ok := qs.Raw.(map[string]any); ok {
-				if dl, ok := qm["description"].([]any); ok {
-					for di := range dl {
-						if s, ok := dl[di].(string); ok {
-							process(ch.Name, qs.ID, ttl, s, "description", di)
-						}
-					}
-				} else if s, ok := qm["description"].(string); ok {
-					process(ch.Name, qs.ID, ttl, s, "description", -1)
-				} else {
-					// fallback to joined string held in struct
-					if qs.Description != "" {
-						process(ch.Name, qs.ID, ttl, qs.Description, "description", -1)
+			var qm = qs.raw
+			if dl, ok := qm["description"].([]any); ok {
+				for di := range dl {
+					if s, ok := dl[di].(string); ok {
+						process(ch.Name, qs.ID, ttl, s, "description", di)
 					}
 				}
+			} else if s, ok := qm["description"].(string); ok {
+				process(ch.Name, qs.ID, ttl, s, "description", -1)
 			} else {
+				// fallback to joined string held in struct
 				if qs.Description != "" {
 					process(ch.Name, qs.ID, ttl, qs.Description, "description", -1)
 				}

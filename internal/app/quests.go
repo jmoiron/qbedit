@@ -150,7 +150,7 @@ func (q *QuestBook) loadChapters() error {
 // ItemTask, etc.) and decode into the appropriate type based on the
 // "type" field.
 type Quest struct {
-	Raw         any
+	raw         map[string]any
 	ID          string
 	Title       string
 	Subtitle    string
@@ -165,11 +165,7 @@ func (q Quest) GetTitle() string {
 		return q.Title
 	}
 	// Inspect first task
-	m, ok := q.Raw.(map[string]any)
-	if !ok {
-		return ""
-	}
-	tasks, ok := m["tasks"].([]any)
+	tasks, ok := q.raw["tasks"].([]any)
 	if !ok || len(tasks) == 0 {
 		return ""
 	}
@@ -207,6 +203,23 @@ func itemToString(v any) string {
 	return ""
 }
 
+func splitMultistring(s string) []string {
+	var res []string
+	for _, s := range strings.Split(s, "\n") {
+		if v := strings.TrimSpace(s); len(v) != 0 {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func stringsToAnySlice(ss []string) (anys []any) {
+	for _, s := range ss {
+		anys = append(anys, s)
+	}
+	return anys
+}
+
 // NewQuest creates a new Quest from a raw generic SNBT value.
 func NewQuest(raw any) (*Quest, error) {
 	rm, ok := raw.(map[string]any)
@@ -216,11 +229,16 @@ func NewQuest(raw any) (*Quest, error) {
 
 	m := M(rm)
 	q := &Quest{
-		Raw:         raw,
+		raw:         rm,
 		ID:          m.GetString("id"),
 		Title:       m.GetString("title"),
 		Subtitle:    m.GetString("subtitle"),
 		Description: m.GetString("description"),
+	}
+
+	if q.Subtitle == "" {
+		ss := m.GetStrings("subtitle")
+		q.Subtitle = strings.Join(ss, "\n")
 	}
 
 	// try multi-string version of description
@@ -230,6 +248,21 @@ func NewQuest(raw any) (*Quest, error) {
 	}
 
 	return q, nil
+}
+
+// Sync writes the Quest's exported fields back into its raw map representation.
+func (q *Quest) Sync() {
+	q.raw["title"] = q.Title
+	if lines := splitMultistring(q.Subtitle); lines != nil {
+		q.raw["subtitle"] = stringsToAnySlice(lines)
+	} else {
+		delete(q.raw, "subtitle")
+	}
+	if lines := splitMultistring(q.Description); lines != nil {
+		q.raw["description"] = stringsToAnySlice(lines)
+	} else {
+		delete(q.raw, "description")
+	}
 }
 
 // Chapter models a quest chapter file.
@@ -250,16 +283,16 @@ type Chapter struct {
 	Quests     []*Quest
 
 	// Raw retains the original decoded map for convenience
-	Raw map[string]any
+	raw map[string]any
 }
 
 // TODO: clean up the constructors of Chapter
 
 // NewChapter constructs a Chapter from a decoded SNBT map.
 // The caller should set Chapter.Name from the filename and may override Title
-// if empty. Raw is preserved for convenience.
+// if empty. raw is preserved for convenience.
 func NewChapter(rm map[string]any) Chapter {
-	ch := Chapter{Raw: rm}
+	ch := Chapter{raw: rm}
 	m := M(rm)
 
 	ch.ID = m.GetString("id")
@@ -303,6 +336,62 @@ func NewChapterWithName(m map[string]any, name string) Chapter {
 		ch.Title = name
 	}
 	return ch
+}
+
+// Sync updates the Chapter's raw map and nested quests to match the struct state.
+func (ch *Chapter) Sync() {
+	for _, q := range ch.Quests {
+		if q != nil {
+			q.Sync()
+		}
+	}
+	if ch.raw == nil {
+		ch.raw = make(map[string]any)
+	}
+	if ch.ID != "" {
+		ch.raw["id"] = ch.ID
+	} else {
+		delete(ch.raw, "id")
+	}
+	if ch.Title != "" {
+		ch.raw["title"] = ch.Title
+	} else {
+		delete(ch.raw, "title")
+	}
+	if ch.Filename != "" {
+		ch.raw["filename"] = ch.Filename
+	} else {
+		delete(ch.raw, "filename")
+	}
+	if ch.Icon != "" {
+		ch.raw["icon"] = ch.Icon
+	} else {
+		delete(ch.raw, "icon")
+	}
+	if ch.GroupID != "" {
+		ch.raw["group"] = ch.GroupID
+	} else {
+		delete(ch.raw, "group")
+	}
+	ch.raw["order_index"] = ch.OrderIndex
+	if len(ch.Subtitle) > 0 {
+		ch.raw["subtitle"] = stringsToAnySlice(ch.Subtitle)
+	} else {
+		delete(ch.raw, "subtitle")
+	}
+	if len(ch.QuestLinks) > 0 {
+		ch.raw["quest_links"] = ch.QuestLinks
+	} else {
+		ch.raw["quest_links"] = []any{}
+	}
+	quests := make([]any, 0, len(ch.Quests))
+	for _, q := range ch.Quests {
+		if q == nil {
+			continue
+		}
+		quests = append(quests, q.raw)
+	}
+	ch.raw["quests"] = quests
 }
 
 func NewChapterFromPath(path string) (*Chapter, error) {
