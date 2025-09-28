@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log/slog"
 	"mime"
 	"net/http"
 	"os"
@@ -726,44 +727,39 @@ func (a *App) colors(w http.ResponseWriter, r *http.Request) {
 	a.render(w, "colors.gohtml", data)
 }
 
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, isAjax bool, msg string, code int) {
+	if isAjax {
+		writeJSON(w, code, map[string]any{"ok": false, "erorr": msg})
+		return
+	}
+	http.Error(w, msg, code)
+}
+
 // colorsRecolor handles POST /colors/recolor. It applies a color code to all
 // occurrences of a term within the specified quest IDs, then rescans data.
 func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 	isAjax := strings.Contains(r.Header.Get("Accept"), "application/json") || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
-	writeJSON := func(code int, v any) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(code)
-		_ = json.NewEncoder(w).Encode(v)
-	}
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		if err2 := r.ParseForm(); err2 != nil {
-			if isAjax {
-				writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid form"})
-				return
-			}
-			http.Error(w, "invalid form", http.StatusBadRequest)
-			return
-		}
+		writeError(w, isAjax, "invalid form", http.StatusBadRequest)
+		return
 	}
 	term := strings.TrimSpace(r.Form.Get("term"))
 	idsParam := strings.TrimSpace(r.Form.Get("ids"))
 	color := strings.TrimSpace(r.Form.Get("color"))
 	ci := r.Form.Get("ci") == "1" || strings.EqualFold(r.Form.Get("ci"), "true")
 	if term == "" || idsParam == "" || len(color) != 1 {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "missing term/ids/color"})
-			return
-		}
-		http.Error(w, "missing term/ids/color", http.StatusBadRequest)
+		writeError(w, isAjax, "missing term/ids/color", http.StatusBadRequest)
 		return
 	}
 	c := color[0]
 	if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid color"})
-			return
-		}
-		http.Error(w, "invalid color", http.StatusBadRequest)
+		writeError(w, isAjax, "invalid color", http.StatusBadRequest)
 		return
 	}
 	if c >= 'A' && c <= 'F' {
@@ -792,11 +788,7 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(targets) == 0 {
-		if isAjax {
-			writeJSON(http.StatusNotFound, map[string]any{"ok": false, "error": "no matching quests"})
-			return
-		}
-		http.Error(w, "no matching quests", http.StatusNotFound)
+		writeError(w, isAjax, "no matching quests", http.StatusNotFound)
 		return
 	}
 
@@ -813,39 +805,23 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Join(a.Root, "quests", "chapters", cname+".snbt")
 		f, err := os.Open(path)
 		if err != nil {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-				return
-			}
-			http.Error(w, "open: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, isAjax, "open: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		v, err := snbt.Decode(f)
 		f.Close()
 		if err != nil {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-				return
-			}
-			http.Error(w, "decode: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, isAjax, "decode: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		m, ok := v.(map[string]any)
 		if !ok {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter not a compound"})
-				return
-			}
-			http.Error(w, "chapter not a compound", http.StatusInternalServerError)
+			writeError(w, isAjax, "chapter not a compound", http.StatusInternalServerError)
 			return
 		}
 		arr, ok := m["quests"].([]any)
 		if !ok {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter missing quests"})
-				return
-			}
-			http.Error(w, "chapter missing quests", http.StatusInternalServerError)
+			writeError(w, isAjax, "chapter missing quests", http.StatusInternalServerError)
 			return
 		}
 		// update any matching quests
@@ -880,19 +856,11 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 		m["quests"] = arr
 		var buf bytes.Buffer
 		if err := snbt.Encode(&buf, m); err != nil {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-				return
-			}
-			http.Error(w, "encode: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, isAjax, "encode: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-			if isAjax {
-				writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-				return
-			}
-			http.Error(w, "write: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, isAjax, "write: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
@@ -900,7 +868,7 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 	// refresh in-memory data
 	a.reload()
 	if isAjax {
-		writeJSON(http.StatusOK, map[string]any{"ok": true})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -910,21 +878,13 @@ func (a *App) colorsRecolor(w http.ResponseWriter, r *http.Request) {
 // of a term in a specific quest field.
 func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 	isAjax := strings.Contains(r.Header.Get("Accept"), "application/json") || r.Header.Get("X-Requested-With") == "XMLHttpRequest"
-	writeJSON := func(code int, v any) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(code)
-		_ = json.NewEncoder(w).Encode(v)
-	}
+
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		if err2 := r.ParseForm(); err2 != nil {
-			if isAjax {
-				writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid form"})
-				return
-			}
-			http.Error(w, "invalid form", http.StatusBadRequest)
-			return
-		}
+		slog.Error("error parsing multipart form", "error", err)
+		writeError(w, isAjax, "invalid form", http.StatusBadRequest)
+		return
 	}
+
 	qid := strings.TrimSpace(r.Form.Get("qid"))
 	term := strings.TrimSpace(r.Form.Get("term"))
 	field := strings.TrimSpace(r.Form.Get("field")) // title|subtitle|description
@@ -932,12 +892,9 @@ func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 	posStr := strings.TrimSpace(r.Form.Get("pos"))
 	color := strings.TrimSpace(r.Form.Get("color"))
 	ci := r.Form.Get("ci") == "1" || strings.EqualFold(r.Form.Get("ci"), "true")
+
 	if qid == "" || term == "" || field == "" || posStr == "" || len(color) != 1 {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "missing params"})
-			return
-		}
-		http.Error(w, "missing params", http.StatusBadRequest)
+		writeError(w, isAjax, "missing params", http.StatusBadRequest)
 		return
 	}
 	c := color[0]
@@ -945,11 +902,7 @@ func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 		c = c - 'A' + 'a'
 	}
 	if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid color"})
-			return
-		}
-		http.Error(w, "invalid color", http.StatusBadRequest)
+		writeError(w, isAjax, "invalid color", http.StatusBadRequest)
 		return
 	}
 	didx := -1
@@ -960,11 +913,7 @@ func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 	}
 	pos, err := strconv.Atoi(posStr)
 	if err != nil {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "bad pos"})
-			return
-		}
-		http.Error(w, "bad pos", http.StatusBadRequest)
+		writeError(w, isAjax, "bad pos", http.StatusBadRequest)
 		return
 	}
 
@@ -982,50 +931,30 @@ func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if ch == nil {
-		if isAjax {
-			writeJSON(http.StatusNotFound, map[string]any{"ok": false, "error": "quest not found"})
-			return
-		}
-		http.Error(w, "quest not found", http.StatusNotFound)
+		writeError(w, isAjax, "quest not found", http.StatusNotFound)
 		return
 	}
 
 	path := filepath.Join(a.Root, "quests", "chapters", ch.Name+".snbt")
 	f, err := os.Open(path)
 	if err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-			return
-		}
-		http.Error(w, "open: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, isAjax, "open: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	v, err := snbt.Decode(f)
 	f.Close()
 	if err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-			return
-		}
-		http.Error(w, "decode: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, isAjax, "decode: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	m, ok := v.(map[string]any)
 	if !ok {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter not a compound"})
-			return
-		}
-		http.Error(w, "chapter not a compound", http.StatusInternalServerError)
+		writeError(w, isAjax, "chapter not a compound", http.StatusInternalServerError)
 		return
 	}
 	arr, ok := m["quests"].([]any)
 	if !ok {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter missing quests"})
-			return
-		}
-		http.Error(w, "chapter missing quests", http.StatusInternalServerError)
+		writeError(w, isAjax, "chapter missing quests", http.StatusInternalServerError)
 		return
 	}
 
@@ -1076,24 +1005,16 @@ func (a *App) colorsRecolorOne(w http.ResponseWriter, r *http.Request) {
 	m["quests"] = arr
 	var buf bytes.Buffer
 	if err := snbt.Encode(&buf, m); err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-			return
-		}
-		http.Error(w, "encode: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, isAjax, "encode: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-			return
-		}
-		http.Error(w, "write: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, isAjax, "write: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	a.reload()
 	if isAjax {
-		writeJSON(http.StatusOK, map[string]any{"ok": true})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

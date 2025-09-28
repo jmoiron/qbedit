@@ -29,56 +29,6 @@ type QuestBook struct {
 	groupMap map[string]*Group
 }
 
-func (q *QuestBook) loadGroups() error {
-	gp := filepath.Join(q.root, "quests", "chapter_groups.snbt")
-	f, err := os.Open(gp)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	groups, err := scanGroups(f)
-	if err != nil {
-		return err
-	}
-	q.Groups = groups
-
-	groupMap := make(map[string]*Group)
-	for _, g := range q.Groups {
-		groupMap[g.ID] = g
-	}
-	q.groupMap = groupMap
-
-	return nil
-}
-
-func (q *QuestBook) loadChapters() error {
-	dir := filepath.Join(q.root, "quests", "chapters")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-
-	var chapters []*Chapter
-	chapterMap := make(map[string]*Chapter)
-	for _, e := range entries {
-		// skip directories and non-snbt files
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".snbt") {
-			continue
-		}
-		c, err := NewChapterFromPath(filepath.Join(dir, e.Name()))
-		if err != nil {
-			return err
-		}
-		chapters = append(chapters, c)
-		chapterMap[c.Name] = c
-	}
-
-	q.Chapters = chapters
-	q.chapterMap = chapterMap
-	return nil
-}
-
 // NewQuestBook instantiates a questbook from a path.
 func NewQuestBook(path string) (*QuestBook, error) {
 	qb := &QuestBook{
@@ -136,6 +86,56 @@ func NewQuestBook(path string) (*QuestBook, error) {
 func (q *QuestBook) TopItems() []*TopItem {
 	// Convert pointers to value slices for existing builder
 	return buildTopItems(q.Groups, q.Chapters)
+}
+
+func (q *QuestBook) loadGroups() error {
+	gp := filepath.Join(q.root, "quests", "chapter_groups.snbt")
+	f, err := os.Open(gp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	groups, err := scanGroups(f)
+	if err != nil {
+		return err
+	}
+	q.Groups = groups
+
+	groupMap := make(map[string]*Group)
+	for _, g := range q.Groups {
+		groupMap[g.ID] = g
+	}
+	q.groupMap = groupMap
+
+	return nil
+}
+
+func (q *QuestBook) loadChapters() error {
+	dir := filepath.Join(q.root, "quests", "chapters")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	var chapters []*Chapter
+	chapterMap := make(map[string]*Chapter)
+	for _, e := range entries {
+		// skip directories and non-snbt files
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".snbt") {
+			continue
+		}
+		c, err := NewChapterFromPath(filepath.Join(dir, e.Name()))
+		if err != nil {
+			return err
+		}
+		chapters = append(chapters, c)
+		chapterMap[c.Name] = c
+	}
+
+	q.Chapters = chapters
+	q.chapterMap = chapterMap
+	return nil
 }
 
 // Quest represents a single quest entry within a Chapter.
