@@ -204,20 +204,22 @@ func itemToString(v any) string {
 }
 
 func splitMultistring(s string) []string {
+	if len(s) == 0 {
+		return nil
+	}
 	var res []string
 	for _, s := range strings.Split(s, "\n") {
-		if v := strings.TrimSpace(s); len(v) != 0 {
-			res = append(res, v)
-		}
+		v := strings.TrimSpace(s)
+		res = append(res, v)
 	}
 	return res
 }
 
-func stringsToAnySlice(ss []string) (anys []any) {
+func stringsToAnySlice(ss []string) (as []any) {
 	for _, s := range ss {
-		anys = append(anys, s)
+		as = append(as, s)
 	}
-	return anys
+	return as
 }
 
 // NewQuest creates a new Quest from a raw generic SNBT value.
@@ -256,12 +258,12 @@ func (q *Quest) Sync() {
 	if lines := splitMultistring(q.Subtitle); lines != nil {
 		q.raw["subtitle"] = stringsToAnySlice(lines)
 	} else {
-		delete(q.raw, "subtitle")
+		q.raw["subtitle"] = []any{}
 	}
 	if lines := splitMultistring(q.Description); lines != nil {
 		q.raw["description"] = stringsToAnySlice(lines)
 	} else {
-		delete(q.raw, "description")
+		q.raw["description"] = []any{}
 	}
 }
 
@@ -348,36 +350,16 @@ func (ch *Chapter) Sync() {
 	if ch.raw == nil {
 		ch.raw = make(map[string]any)
 	}
-	if ch.ID != "" {
-		ch.raw["id"] = ch.ID
-	} else {
-		delete(ch.raw, "id")
-	}
-	if ch.Title != "" {
-		ch.raw["title"] = ch.Title
-	} else {
-		delete(ch.raw, "title")
-	}
-	if ch.Filename != "" {
-		ch.raw["filename"] = ch.Filename
-	} else {
-		delete(ch.raw, "filename")
-	}
-	if ch.Icon != "" {
-		ch.raw["icon"] = ch.Icon
-	} else {
-		delete(ch.raw, "icon")
-	}
-	if ch.GroupID != "" {
-		ch.raw["group"] = ch.GroupID
-	} else {
-		delete(ch.raw, "group")
-	}
+	ch.raw["id"] = ch.ID
+	ch.raw["title"] = ch.Title
+	ch.raw["filename"] = ch.Filename
+	ch.raw["icon"] = ch.Icon
+	ch.raw["group"] = ch.GroupID
 	ch.raw["order_index"] = ch.OrderIndex
 	if len(ch.Subtitle) > 0 {
 		ch.raw["subtitle"] = stringsToAnySlice(ch.Subtitle)
 	} else {
-		delete(ch.raw, "subtitle")
+		ch.raw["subtitle"] = []any{}
 	}
 	if len(ch.QuestLinks) > 0 {
 		ch.raw["quest_links"] = ch.QuestLinks

@@ -77,7 +77,7 @@ func TestBuildTopItems_Interleave(t *testing.T) {
 
 func TestQuestSyncMultistring(t *testing.T) {
 	q := &Quest{
-		raw:         map[string]any{"tasks": []any{}},
+		raw:         map[string]any{"id": "Q1", "tasks": []any{}},
 		ID:          "Q1",
 		Title:       "Quest Title",
 		Subtitle:    "  First Line  \r\n  \r\nSecond Line  ",
@@ -108,13 +108,13 @@ func TestQuestSyncMultistring(t *testing.T) {
 	}
 
 	q.Subtitle = ""
-	q.Description = "\t"
+	q.Description = ""
 	q.Sync()
-	if _, ok := q.raw["subtitle"]; ok {
-		t.Fatalf("subtitle should be cleared, got %v", q.raw["subtitle"])
+	if sub, ok := q.raw["subtitle"].([]any); !ok || len(sub) != 0 {
+		t.Fatalf("subtitle should be empty slice, got %#v", q.raw["subtitle"])
 	}
-	if _, ok := q.raw["description"]; ok {
-		t.Fatalf("description should be cleared, got %v", q.raw["description"])
+	if desc, ok := q.raw["description"].([]any); !ok || len(desc) != 0 {
+		t.Fatalf("description should be empty slice, got %#v", q.raw["description"])
 	}
 }
 
@@ -186,8 +186,8 @@ func TestChapterSync(t *testing.T) {
 	ch.QuestLinks = nil
 	ch.Quests = nil
 	ch.Sync()
-	if _, ok := ch.raw["subtitle"]; ok {
-		t.Fatalf("subtitle should be cleared, got %v", ch.raw["subtitle"])
+	if sub, ok := ch.raw["subtitle"].([]any); !ok || len(sub) != 0 {
+		t.Fatalf("subtitle should be empty slice, got %#v", ch.raw["subtitle"])
 	}
 	if qlinks, ok := ch.raw["quest_links"].([]any); !ok || len(qlinks) != 0 {
 		t.Fatalf("quest_links should be empty slice, got %#v", ch.raw["quest_links"])
@@ -208,4 +208,66 @@ func equalAnyStrings(vals []any, want []string) bool {
 		}
 	}
 	return true
+}
+
+func TestQuestSyncRoundTrip(t *testing.T) {
+	orig := map[string]any{
+		"id":          "OLD",
+		"title":       "Old Title",
+		"subtitle":    "Original Subtitle",
+		"description": []any{"Start", "Middle"},
+		"tasks":       []any{},
+	}
+
+	var buf bytes.Buffer
+	if err := snbt.Encode(&buf, orig); err != nil {
+		t.Fatalf("encode original: %v", err)
+	}
+	raw1, err := snbt.Decode(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("decode original: %v", err)
+	}
+	rm1, ok := raw1.(map[string]any)
+	if !ok {
+		t.Fatalf("decoded quest type = %T, want map[string]any", raw1)
+	}
+	q1, err := NewQuest(rm1)
+	if err != nil {
+		t.Fatalf("NewQuest: %v", err)
+	}
+
+	q1.Title = "New Title"
+	q1.Subtitle = "Line One\nLine Two"
+	q1.Description = "Alpha\n\nBeta"
+	q1.Sync()
+
+	var buf2 bytes.Buffer
+	if err := snbt.Encode(&buf2, q1.raw); err != nil {
+		t.Fatalf("encode synced: %v", err)
+	}
+	raw2, err := snbt.Decode(bytes.NewReader(buf2.Bytes()))
+	if err != nil {
+		t.Fatalf("decode synced: %v", err)
+	}
+	rm2, ok := raw2.(map[string]any)
+	if !ok {
+		t.Fatalf("decoded synced quest type = %T, want map[string]any", raw2)
+	}
+	q2, err := NewQuest(rm2)
+	if err != nil {
+		t.Fatalf("NewQuest round-trip: %v", err)
+	}
+
+	if q2.ID != q1.ID {
+		t.Fatalf("id mismatch: got %q want %q", q2.ID, q1.ID)
+	}
+	if q2.Title != q1.Title {
+		t.Fatalf("title mismatch: got %q want %q", q2.Title, q1.Title)
+	}
+	if q2.Subtitle != q1.Subtitle {
+		t.Fatalf("subtitle mismatch: got %q want %q", q2.Subtitle, q1.Subtitle)
+	}
+	if q2.Description != q1.Description {
+		t.Fatalf("description mismatch: got %q want %q", q2.Description, q1.Description)
+	}
 }
