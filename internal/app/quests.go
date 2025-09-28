@@ -349,35 +349,25 @@ func NewChapterWithName(m map[string]any, name string) Chapter {
 
 // Sync updates the Chapter's raw map and nested quests to match the struct state.
 func (ch *Chapter) Sync() {
+	// first, sync all quests
 	for _, q := range ch.Quests {
-		if q != nil {
-			q.Sync()
+		q.Sync()
+	}
+
+	// the rest of the fields are read-only
+	// we don't support editing the chapter title or subtitle yet, all we want
+	// to do is replace the quests.
+	/*
+		ch.raw["title"] = ch.Title
+		if len(ch.Subtitle) > 0 {
+			ch.raw["subtitle"] = stringsToAnySlice(ch.Subtitle)
+		} else {
+			ch.raw["subtitle"] = []any{}
 		}
-	}
-	if ch.raw == nil {
-		ch.raw = make(map[string]any)
-	}
-	ch.raw["id"] = ch.ID
-	ch.raw["title"] = ch.Title
-	ch.raw["filename"] = ch.Filename
-	ch.raw["icon"] = ch.Icon
-	ch.raw["group"] = ch.GroupID
-	ch.raw["order_index"] = ch.OrderIndex
-	if len(ch.Subtitle) > 0 {
-		ch.raw["subtitle"] = stringsToAnySlice(ch.Subtitle)
-	} else {
-		ch.raw["subtitle"] = []any{}
-	}
-	if len(ch.QuestLinks) > 0 {
-		ch.raw["quest_links"] = ch.QuestLinks
-	} else {
-		ch.raw["quest_links"] = []any{}
-	}
+	*/
+
 	quests := make([]any, 0, len(ch.Quests))
 	for _, q := range ch.Quests {
-		if q == nil {
-			continue
-		}
 		quests = append(quests, q.raw)
 	}
 	ch.raw["quests"] = quests

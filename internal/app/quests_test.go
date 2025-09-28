@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/jmoiron/qbedit/snbt"
@@ -111,85 +110,6 @@ func TestQuestSyncMultistring(t *testing.T) {
 	}
 	if _, ok := q.raw["description"]; ok {
 		t.Fatalf("description should be absent, got %#v", q.raw["description"])
-	}
-}
-
-func TestChapterSync(t *testing.T) {
-	q1 := &Quest{raw: map[string]any{}, ID: "Q1", Title: "One", Subtitle: "Line", Description: "Desc"}
-	q2 := &Quest{raw: map[string]any{}, ID: "Q2"}
-	ch := &Chapter{
-		raw:        map[string]any{},
-		ID:         "CH1",
-		Title:      "Chapter Title",
-		Filename:   "chapter",
-		Icon:       "minecraft:stone",
-		GroupID:    "Group",
-		OrderIndex: 3,
-		Subtitle:   []string{"LineA", "LineB"},
-		QuestLinks: []any{"link"},
-		Quests:     []*Quest{q1, q2},
-	}
-
-	ch.Sync()
-
-	if got := ch.raw["id"]; got != "CH1" {
-		t.Fatalf("id mismatch: got %v", got)
-	}
-	if got := ch.raw["title"]; got != "Chapter Title" {
-		t.Fatalf("title mismatch: got %v", got)
-	}
-	if got := ch.raw["filename"]; got != "chapter" {
-		t.Fatalf("filename mismatch: got %v", got)
-	}
-	if got := ch.raw["icon"]; got != "minecraft:stone" {
-		t.Fatalf("icon mismatch: got %v", got)
-	}
-	if got := ch.raw["group"]; got != "Group" {
-		t.Fatalf("group mismatch: got %v", got)
-	}
-	if got := ch.raw["order_index"]; got != 3 {
-		t.Fatalf("order_index mismatch: got %v", got)
-	}
-	sub, ok := ch.raw["subtitle"].([]any)
-	if !ok {
-		t.Fatalf("subtitle type mismatch: %#v", ch.raw["subtitle"])
-	}
-	if want := []string{"LineA", "LineB"}; !equalAnyStrings(sub, want) {
-		t.Fatalf("subtitle mismatch: got %v want %v", sub, want)
-	}
-	qlinks, ok := ch.raw["quest_links"].([]any)
-	if !ok {
-		t.Fatalf("quest_links type mismatch: %#v", ch.raw["quest_links"])
-	}
-	if len(qlinks) != 1 || qlinks[0] != "link" {
-		t.Fatalf("quest_links mismatch: got %v", qlinks)
-	}
-	questsVal, ok := ch.raw["quests"].([]any)
-	if !ok {
-		t.Fatalf("quests type mismatch: %#v", ch.raw["quests"])
-	}
-	if len(questsVal) != 2 {
-		t.Fatalf("quests length mismatch: got %d", len(questsVal))
-	}
-	if qrm, ok := questsVal[0].(map[string]any); !ok || !reflect.DeepEqual(qrm, q1.raw) {
-		t.Fatalf("quests[0] mismatch: got %#v want %#v", questsVal[0], q1.raw)
-	}
-	if qrm, ok := questsVal[1].(map[string]any); !ok || !reflect.DeepEqual(qrm, q2.raw) {
-		t.Fatalf("quests[1] mismatch: got %#v want %#v", questsVal[1], q2.raw)
-	}
-
-	ch.Subtitle = nil
-	ch.QuestLinks = nil
-	ch.Quests = nil
-	ch.Sync()
-	if sub, ok := ch.raw["subtitle"].([]any); !ok || len(sub) != 0 {
-		t.Fatalf("subtitle should be empty slice, got %#v", ch.raw["subtitle"])
-	}
-	if qlinks, ok := ch.raw["quest_links"].([]any); !ok || len(qlinks) != 0 {
-		t.Fatalf("quest_links should be empty slice, got %#v", ch.raw["quest_links"])
-	}
-	if questsVal, ok := ch.raw["quests"].([]any); !ok || len(questsVal) != 0 {
-		t.Fatalf("quests should be empty slice, got %#v", ch.raw["quests"])
 	}
 }
 
