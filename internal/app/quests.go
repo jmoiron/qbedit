@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -155,6 +156,9 @@ type Quest struct {
 	Title       string
 	Subtitle    string
 	Description string
+
+	// Backlink to this quest's Chapter for sync/saving
+	Chapter *Chapter
 }
 
 // GetTitle returns the preferred display title for the quest.
@@ -300,8 +304,8 @@ type Chapter struct {
 // NewChapter constructs a Chapter from a decoded SNBT map.
 // The caller should set Chapter.Name from the filename and may override Title
 // if empty. raw is preserved for convenience.
-func NewChapter(rm map[string]any) Chapter {
-	ch := Chapter{raw: rm}
+func NewChapter(rm map[string]any) *Chapter {
+	ch := &Chapter{raw: rm}
 	m := M(rm)
 
 	ch.ID = m.GetString("id")
@@ -330,21 +334,35 @@ func NewChapter(rm map[string]any) Chapter {
 			slog.Error("error loading quest", "chapter", ch.Filename, "quest", qv)
 			continue
 		}
+		q.Chapter = ch
 		ch.Quests = append(ch.Quests, q)
 	}
 
 	return ch
 }
 
-// NewChapterWithName builds a Chapter from a map and sets its Name.
-// If Title is empty, it defaults to the provided name.
-func NewChapterWithName(m map[string]any, name string) Chapter {
-	ch := NewChapter(m)
-	ch.Name = name
-	if ch.Title == "" {
-		ch.Title = name
+// NewChapterFromPath creates a new chapter from the snbt file at path.
+func NewChapterFromPath(path string) (*Chapter, error) {
+	fallback := strings.TrimSuffix(filepath.Base(path), ".snbt")
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
-	return ch
+	defer f.Close()
+	v, err := snbt.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := v.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("chapter at %s: expected compound, got %T", path, v)
+	}
+	ch := NewChapter(m)
+	ch.Name = fallback
+	if ch.Title == "" {
+		ch.Name = fallback
+	}
+	return ch, nil
 }
 
 // Sync updates the Chapter's raw map and nested quests to match the struct state.
@@ -373,23 +391,17 @@ func (ch *Chapter) Sync() {
 	ch.raw["quests"] = quests
 }
 
-func NewChapterFromPath(path string) (*Chapter, error) {
-	fallback := strings.TrimSuffix(filepath.Base(path), ".snbt")
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+// Save writes this chapter to path. The Chapter is sync'd first.
+func (ch *Chapter) Save(path string) error {
+	ch.Sync()
+
+	var buf bytes.Buffer
+	if err := snbt.Encode(&buf, ch.raw); err != nil {
+		return err
 	}
-	defer f.Close()
-	v, err := snbt.Decode(f)
-	if err != nil {
-		return nil, err
-	}
-	m, ok := v.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("chapter at %s: expected compound, got %T", path, v)
-	}
-	ch := NewChapterWithName(m, fallback)
-	return &ch, nil
+
+	// TODO: preserve permissions?
+	return os.WriteFile(path, buf.Bytes(), 0644)
 }
 
 // Group organizes chapters under a heading.

@@ -1252,19 +1252,12 @@ func (a *App) questDetail(w http.ResponseWriter, r *http.Request) {
 // questSave handles POST "/chapter/{chapter}/{quest}/save" to persist edits.
 func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	isAjax := r.Header.Get("X-Requested-With") == "XMLHttpRequest" || strings.Contains(r.Header.Get("Accept"), "application/json")
-	writeJSON := func(code int, v any) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(code)
-		_ = json.NewEncoder(w).Encode(v)
-	}
+
 	if err := r.ParseForm(); err != nil {
-		if isAjax {
-			writeJSON(http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid form"})
-		} else {
-			http.Error(w, "invalid form", http.StatusBadRequest)
-		}
+		writeError(w, isAjax, "invalid form", http.StatusBadRequest)
 		return
 	}
+
 	cname := chi.URLParam(r, "chapter")
 	qid := chi.URLParam(r, "quest")
 	title := strings.TrimSpace(r.Form.Get("title"))
@@ -1275,39 +1268,23 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	path := filepath.Join(a.Root, "quests", "chapters", cname+".snbt")
 	f, err := os.Open(path)
 	if err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-		} else {
-			http.Error(w, "open chapter: "+err.Error(), http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "open chapter: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	v, err := snbt.Decode(f)
 	f.Close()
 	if err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-		} else {
-			http.Error(w, "decode: "+err.Error(), http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "decode: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	m, ok := v.(map[string]any)
 	if !ok {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter not a compound"})
-		} else {
-			http.Error(w, "chapter not a compound", http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "chapter not a compound", http.StatusInternalServerError)
 		return
 	}
 	arr, ok := m["quests"].([]any)
 	if !ok {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": "chapter missing quests"})
-		} else {
-			http.Error(w, "chapter missing quests", http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "chapter missing quests", http.StatusInternalServerError)
 		return
 	}
 	// Find quest by id
@@ -1351,36 +1328,24 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !found {
-		if isAjax {
-			writeJSON(http.StatusNotFound, map[string]any{"ok": false, "error": "quest not found"})
-		} else {
-			http.Error(w, "quest not found", http.StatusNotFound)
-		}
+		writeError(w, isAjax, "quest not found", http.StatusNotFound)
 		return
 	}
 	m["quests"] = arr
 	// Encode back to file
 	var buf bytes.Buffer
 	if err := snbt.Encode(&buf, m); err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-		} else {
-			http.Error(w, "encode: "+err.Error(), http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "encode: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		if isAjax {
-			writeJSON(http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
-		} else {
-			http.Error(w, "write: "+err.Error(), http.StatusInternalServerError)
-		}
+		writeError(w, isAjax, "write: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// Refresh in-memory data
 	a.reload()
 	if isAjax {
-		writeJSON(http.StatusOK, map[string]any{"ok": true})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 		return
 	}
 	// Redirect back to quest detail
