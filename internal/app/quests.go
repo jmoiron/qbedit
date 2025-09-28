@@ -253,17 +253,24 @@ func NewQuest(raw any) (*Quest, error) {
 }
 
 // Sync writes the Quest's exported fields back into its raw map representation.
+// Quests that lack title/subtitle/description lack those fields in the
+// snbt files, rather than having them set "empty".
 func (q *Quest) Sync() {
-	q.raw["title"] = q.Title
-	if lines := splitMultistring(q.Subtitle); lines != nil {
-		q.raw["subtitle"] = stringsToAnySlice(lines)
+	if len(q.Title) > 0 {
+		q.raw["title"] = q.Title
 	} else {
-		q.raw["subtitle"] = []any{}
+		delete(q.raw, "title")
 	}
-	if lines := splitMultistring(q.Description); lines != nil {
+	// quest subtitles are always normal strings not multis
+	if len(q.Subtitle) > 0 {
+		q.raw["subtitle"] = q.Subtitle
+	} else {
+		delete(q.raw, "subtitle")
+	}
+	if lines := splitMultistring(q.Description); len(lines) > 0 {
 		q.raw["description"] = stringsToAnySlice(lines)
 	} else {
-		q.raw["description"] = []any{}
+		delete(q.raw, "description")
 	}
 }
 

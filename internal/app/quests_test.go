@@ -80,7 +80,7 @@ func TestQuestSyncMultistring(t *testing.T) {
 		raw:         map[string]any{"id": "Q1", "tasks": []any{}},
 		ID:          "Q1",
 		Title:       "Quest Title",
-		Subtitle:    "  First Line  \r\n  \r\nSecond Line  ",
+		Subtitle:    " these arent multiline ",
 		Description: "  Foo  \r\nBar  ",
 	}
 
@@ -92,12 +92,8 @@ func TestQuestSyncMultistring(t *testing.T) {
 	if got := q.raw["title"]; got != "Quest Title" {
 		t.Fatalf("title mismatch: got %v", got)
 	}
-	sub, ok := q.raw["subtitle"].([]any)
-	if !ok {
-		t.Fatalf("subtitle type mismatch: %#v", q.raw["subtitle"])
-	}
-	if want := []string{"First Line", "", "Second Line"}; !equalAnyStrings(sub, want) {
-		t.Fatalf("subtitle mismatch: got %v want %v", sub, want)
+	if got := q.raw["subtitle"]; got != " these arent multiline " {
+		t.Fatalf("subtitle mismatch: %#v", q.raw["subtitle"])
 	}
 	desc, ok := q.raw["description"].([]any)
 	if !ok {
@@ -110,11 +106,11 @@ func TestQuestSyncMultistring(t *testing.T) {
 	q.Subtitle = ""
 	q.Description = ""
 	q.Sync()
-	if sub, ok := q.raw["subtitle"].([]any); !ok || len(sub) != 0 {
-		t.Fatalf("subtitle should be empty slice, got %#v", q.raw["subtitle"])
+	if _, ok := q.raw["subtitle"]; ok {
+		t.Fatalf("subtitle should be absent, got %#v", q.raw["subtitle"])
 	}
-	if desc, ok := q.raw["description"].([]any); !ok || len(desc) != 0 {
-		t.Fatalf("description should be empty slice, got %#v", q.raw["description"])
+	if _, ok := q.raw["description"]; ok {
+		t.Fatalf("description should be absent, got %#v", q.raw["description"])
 	}
 }
 
