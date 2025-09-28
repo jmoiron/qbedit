@@ -4,6 +4,7 @@
     {{ mc .Chapter.Title }}
     <a class="muted" href="/chapter/{{ .Chapter.Name }}/raw" style="margin-left:8px; text-decoration:none;">→</a>
   </h1>
+  <p class="muted">Edit <a href="/batch/edit?cg={{ .Chapter.Name }}">all chapter quests</a> in batch editor.</p>
   <ul class="quest-list">
     {{ range .Chapter.Quests }}
       <li>

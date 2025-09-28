@@ -1255,8 +1255,15 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	isAjax := r.Header.Get("X-Requested-With") == "XMLHttpRequest" || strings.Contains(r.Header.Get("Accept"), "application/json")
 
 	if err := r.ParseMultipartForm(2 << 20); err != nil {
-		writeError(w, isAjax, "invalid form", http.StatusBadRequest)
-		return
+		// the normal editor submits a non-multipart form, so lets try
+		// to parse that if it isn't actually multipart
+		if err == http.ErrNotMultipart {
+			err = r.ParseForm()
+		}
+		if err != nil {
+			writeError(w, isAjax, "invalid form: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	cname := chi.URLParam(r, "chapter")
