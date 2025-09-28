@@ -8,6 +8,9 @@ build:
 test:
 	go test ./...
 
+install:
+	go test ./... && go install
+
 # Format Go code using goimports if available, else gofmt.
 # Excludes hidden directories (e.g., .git, .gopath, .cache).
 fmt:

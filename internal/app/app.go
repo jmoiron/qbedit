@@ -1254,7 +1254,7 @@ func (a *App) questDetail(w http.ResponseWriter, r *http.Request) {
 func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	isAjax := r.Header.Get("X-Requested-With") == "XMLHttpRequest" || strings.Contains(r.Header.Get("Accept"), "application/json")
 
-	if err := r.ParseForm(); err != nil {
+	if err := r.ParseMultipartForm(2 << 20); err != nil {
 		writeError(w, isAjax, "invalid form", http.StatusBadRequest)
 		return
 	}
@@ -1264,6 +1264,9 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	title := strings.TrimSpace(r.Form.Get("title"))
 	subtitle := strings.TrimSpace(r.Form.Get("subtitle"))
 	desc := r.Form.Get("description")
+
+	slog.Debug("saving quest", "chapter", cname, "quest", qid,
+		"title", title, "subtitle", subtitle, "desc", desc)
 
 	// it makes sense to re-read the chapter from disk before saving as
 	// edits to other quests from elsewhere could be lost if we don't
