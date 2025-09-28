@@ -1213,6 +1213,7 @@ func (a *App) chapterRaw(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+
 	// Read raw file contents
 	path := filepath.Join(a.Root, "quests", "chapters", ch.Name+".snbt")
 	data := a.baseData(r, "Raw: "+ch.Title)
@@ -1264,86 +1265,34 @@ func (a *App) questSave(w http.ResponseWriter, r *http.Request) {
 	subtitle := strings.TrimSpace(r.Form.Get("subtitle"))
 	desc := r.Form.Get("description")
 
-	// Load raw chapter file
+	// it makes sense to re-read the chapter from disk before saving as
+	// edits to other quests from elsewhere could be lost if we don't
 	path := filepath.Join(a.Root, "quests", "chapters", cname+".snbt")
-	f, err := os.Open(path)
+
+	chapter, err := NewChapterFromPath(path)
 	if err != nil {
 		writeError(w, isAjax, "open chapter: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	v, err := snbt.Decode(f)
-	f.Close()
-	if err != nil {
-		writeError(w, isAjax, "decode: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	m, ok := v.(map[string]any)
+
+	quest, ok := chapter.questMap[qid]
 	if !ok {
-		writeError(w, isAjax, "chapter not a compound", http.StatusInternalServerError)
-		return
-	}
-	arr, ok := m["quests"].([]any)
-	if !ok {
-		writeError(w, isAjax, "chapter missing quests", http.StatusInternalServerError)
-		return
-	}
-	// Find quest by id
-	found := false
-	for i := range arr {
-		if qm, ok := arr[i].(map[string]any); ok {
-			if id, _ := qm["id"].(string); id == qid {
-				if title != "" {
-					qm["title"] = title
-				} else {
-					delete(qm, "title")
-				}
-				if subtitle != "" {
-					qm["subtitle"] = subtitle
-				} else {
-					delete(qm, "subtitle")
-				}
-				// description as list of strings split by lines
-				dlines := strings.Split(desc, "\n")
-				// trim trailing empty lines
-				j := len(dlines)
-				for j > 0 && strings.TrimSpace(dlines[j-1]) == "" {
-					j--
-				}
-				dlines = dlines[:j]
-				if len(dlines) > 0 {
-					dl := make([]any, 0, len(dlines))
-					for _, s := range dlines {
-						// Strip any carriage returns from Windows CRLF
-						s = strings.TrimRight(s, "\r")
-						dl = append(dl, s)
-					}
-					qm["description"] = dl
-				} else {
-					delete(qm, "description")
-				}
-				arr[i] = qm
-				found = true
-				break
-			}
-		}
-	}
-	if !found {
 		writeError(w, isAjax, "quest not found", http.StatusNotFound)
 		return
 	}
-	m["quests"] = arr
-	// Encode back to file
-	var buf bytes.Buffer
-	if err := snbt.Encode(&buf, m); err != nil {
-		writeError(w, isAjax, "encode: "+err.Error(), http.StatusInternalServerError)
+
+	quest.Title = title
+	quest.Subtitle = subtitle
+	quest.Description = desc
+
+	if err := chapter.Save(path); err != nil {
+		writeError(w, isAjax, "saving chapter: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		writeError(w, isAjax, "write: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+
 	// Refresh in-memory data
 	a.reload()
+
 	if isAjax {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 		return

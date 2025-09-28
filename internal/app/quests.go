@@ -297,6 +297,9 @@ type Chapter struct {
 
 	// Raw retains the original decoded map for convenience
 	raw map[string]any
+
+	// map of quest id -> quest
+	questMap map[string]*Quest
 }
 
 // TODO: clean up the constructors of Chapter
@@ -336,6 +339,7 @@ func NewChapter(rm map[string]any) *Chapter {
 		}
 		q.Chapter = ch
 		ch.Quests = append(ch.Quests, q)
+		ch.questMap[q.ID] = q
 	}
 
 	return ch
