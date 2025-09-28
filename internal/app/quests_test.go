@@ -43,13 +43,13 @@ func TestScanGroups(t *testing.T) {
 }
 
 func TestBuildTopItems_Interleave(t *testing.T) {
-	groups := []Group{
+	groups := []*Group{
 		{ID: "G1", Title: "G1"},
 		{ID: "G2", Title: "G2"},
 		{ID: "G3", Title: "G3"},
 		{ID: "G4", Title: "G4"},
 	}
-	chapters := []Chapter{
+	chapters := []*Chapter{
 		{Name: "intro", Title: "Introduction", OrderIndex: 0},
 		{Name: "from_nothing", Title: "From Nothing", OrderIndex: 1},
 		{Name: "later", Title: "Later", OrderIndex: 3},
