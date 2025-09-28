@@ -308,7 +308,10 @@ type Chapter struct {
 // The caller should set Chapter.Name from the filename and may override Title
 // if empty. raw is preserved for convenience.
 func NewChapter(rm map[string]any) *Chapter {
-	ch := &Chapter{raw: rm}
+	ch := &Chapter{
+		raw:      rm,
+		questMap: make(map[string]*Quest),
+	}
 	m := M(rm)
 
 	ch.ID = m.GetString("id")
